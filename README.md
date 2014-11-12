@@ -1,4 +1,4 @@
 bhash
 =====
 
-entropy balanced geohash
+balanced hash project
