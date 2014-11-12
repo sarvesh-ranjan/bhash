@@ -1,0 +1,4 @@
+bhash
+=====
+
+entropy balanced geohash
