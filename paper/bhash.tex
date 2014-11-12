@@ -1,0 +1,199 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{nips13submit_e,times}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+%\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
+
+
+\title{An Entropy Maximizing Geohash for Distributed Spatiotemporal Database Indexing}
+
+
+\author{
+Taylor~B.~Arnold \\
+AT\&T Labs Research\\
+33 Thomas Street\\
+New York, NY 10007 \\
+\texttt{taylor@research.att.com}
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\nipsfinalcopy % Uncomment for camera-ready version
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a modification of the standard geohash algorithm
+for which the data volume, rather than spatial area, is constant
+for a given hash prefix length. This property is particularly
+useful for indexing large distributed databases, where load
+distribution of large range scans is an imporant aspect of
+query performance. Distributed spatiotemporal databases, which
+typically require interleaving spatial and temporal elements
+into a single key, reap additional benefits from a balanced
+geohash by creating a consistent balance between spatial and
+temporal precision even across areas of varying data density.
+We apply our algorithm to data generated proportional to population
+as given by census block population counts provided from the
+US Census Bureau. An efficent implementation for calculating an
+arbitrary balanced geohash is also provided.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+Queries over large distributed
+databases often take the form of a series of large range scans;
+balancin
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Entropy Balanced Geohash}
+
+\subsection{A Formulation of the Standard Geohash Encoding}
+
+A geohash is a scheme for mapping two-dimensional coordinates into a
+hierarchical, one-dimensional encoding. It is explained in several
+other sources, but we re-construct it here in a format which will be
+most conducive to generalizations.
+
+The first step is to map latitude and longitude coordinates in a
+standard unit square; this is done by the following linear mapping:
+\begin{align}
+x &= \frac{\text{lon} + 180}{360} \\
+y &= \frac{\text{lat} + 90}{180}
+\end{align}
+This choice is by convention, and any other method for mapping coordinantes
+into the unit square is equally viable. The geohash formulation actually works
+on any continuous two-dimensional data, and could be used  as-is to encode other
+two-dimensional datasets.
+
+The $x$ and $y$ coordinates need to be expressed in as a binary decimals.
+Formally, we define the unique $x_i \in \{0,1 \}$ and $y_i \in \{0,1\}$
+such that
+\begin{align}
+x &= \sum_{i=1}^{\infty} \frac{x_i}{2^i},\\
+y &= \sum_{i=1}^{\infty} \frac{y_i}{2^i}.
+\end{align}
+A geohash representation of $(x,y)$ is constructed by interleaving these
+binary digits. The $q$-bit geohash $g_q(\cdot,\cdot)$ can symbolically
+be defined as
+\begin{align}
+g_q(x,y) &:=  \sum_{i=1}^{\lceil q/2 \rceil} \frac{x_i}{2^{2i-1}} +
+              \sum_{i=1}^{\lfloor q/2 \rfloor} \frac{y_i}{2^{2i}}.
+\end{align}
+It is fairly easy to show that the geohash function is monotone increasing
+in $q$, with the growth strictly bounded by $2^{-q}$, so that
+\begin{align}
+0 \leq g_{q+m}(x,y) - g_{q}(x,y) < \frac{1}{2^q}
+\end{align}
+For all $m$ greater than zero.
+
+\subsection{Entropy}
+
+A geohash is typically used as an index in the storing and querying of large
+spatial processes. A simple theoretical model for a stream of spatial data can
+be constructed by assuming that each observation is an independent identically
+distributed random variable $\mathfrak{F}$ from some distribution over space.
+Borrowing a concept from information theory, we can define the entropy of a geohash
+over a given spatial distribution by the equation
+\begin{align}
+H(g_q) &:= -1 \sum_{v \in \mathcal{R}(g_q)} \mathbb{P} \left[ g_q(\mathfrak{F}) = v\right] \cdot
+            \log_2 \left\{ \mathbb{P} \left[ g_q(\mathfrak{F}) = v\right] \right\} \label{entropyDef}
+\end{align}
+Where $\mathcal{R}(g_q)$ is the range of the $q$-bit geohash. It is a standard result
+that the entropy of a discrete distribution is maximized by the uniform distribution.
+Therefore we can use this as a proxy for how balanced a geohash is for a given distribution
+of spatial data.
+
+\subsection{The Generalized Geohash}
+
+As the $q$-bit geohash function is bounded and monotonic in $q$, we can define the infinite
+precision geohash, which we denote as simply $g(\cdot, \cdot)$, to be the limit
+\begin{align}
+\lim_{q \rightarrow \infty} g_q(x,y) &:= g(x,y).
+\end{align}
+With this continuous format, one can see that if we compose $g$ with an appropriate new function
+$h$, the composition $h \circ g(x,y)$ which can be thought of as a rescaled version of the
+traditional geohash. To be precise, we would like a function $h$ to have the following properties:
+\begin{align}
+&h: [0,1] \rightarrow [0,1], \\ \label{hDef}
+&h(0) = 0, \\
+&h(1) = 1, \\
+&x < y \iff h(x) < h(y). \label{monotoneEq}
+\end{align}
+Note that Equation~\ref{monotoneEq} implies that $h$ is also continuous. From here, we can define
+the analogue to a $q$-bit geohash be truncating the binary representation of $w$, the value of
+$h(z)$,
+\begin{align}
+h(z) &= \sum_{i=1}^{\infty} \frac{w_i}{2^i}
+\end{align}
+To the its first $q$-bits
+\begin{align}
+h_q(z) &:= \sum_{i=1}^{q} \frac{w_i}{2^i}.
+\end{align}
+In the remainder of this document, we refer the $h_q \circ g(x,y)$ as a generalized geohash.
+
+\subsection{The Empirical Entropic Geohash}
+
+We have introduced the concept of a generalized geohash in order to construct a spatial encoding
+scheme which better optimizes the entropy as defined in Equation~\ref{entropyDef}. Given that
+our application domain is intended for storing very large datasets, there should be little difference
+between working with the theoretical generating process of $\mathfrak{F}$ compared to working
+with the empirical distribution. See, for instance, the Dvoretzky–-Kiefer–-Wolfowitz inequality
+which shows a theoretical bound between these two distribution which decays like $e^{-n}$.
+
+Assume $\{z_i\}_{i=0}^M$ is a set of independent sample from realizations of the random variable
+$\mathfrak{F}$. The empirical cumulative distribution function $G$ of the standard geohash function
+$g(\cdot, \cdot)$ is given by
+\begin{align}
+G(t) &:= \frac{1}{M} \cdot \sum_{i=0}^{M} 1_{g(z_i) \leq t}, \, t \in [0,1]. \label{empGeohash}
+\end{align}
+From Equation~\ref{empGeohash} we can define the balanced entropy maximizing geohash function
+$b$ (balanced), assuming that every point $z_i$ has a geohash $g(z_i)$ strictly between $0$ and
+$1$, to be
+\begin{align}
+b(t) :=
+  \begin{cases}
+    0 &\mbox{if } t = 0\\
+    1 &\mbox{if } t = 1\\
+    \frac{M}{M+2} \cdot G^{-1}(t) &\mbox{if } \, \exists \, z_i \, \text{s.t.} \, g(z_i) = t \\
+    \text{linear interpolation of the above points} & \text{else}
+  \end{cases} \label{balancedHash}
+\end{align}
+The balanced geohash is essentialy the inverse of the empirical function $G$, with some minor
+variations to satisfy Equations~\ref{hDef}-\ref{monotoneEq}. If the points $\{z_i\}$ are unique,
+and $M$ is sufficently large, the $q$-bit analogue $b_q$ of Equation~\ref{balancedHash} will
+have an entropy $H(b_q)$ of approximately equal to $q$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Census Data Example}
+
+\subsection{Population based}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Distributed Application}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}
+
+
+
+
+\end{document}
