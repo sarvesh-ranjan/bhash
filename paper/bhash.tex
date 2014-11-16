@@ -7,6 +7,7 @@
 \usepackage{amssymb}
 %\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
 
+\newtheorem{thm}{Theorem}
 
 \title{An Entropy Maximizing Geohash for Distributed Spatiotemporal Database Indexing}
 
@@ -130,7 +131,7 @@ With this continuous format, one can see that if we compose $g$ with an appropri
 $h$, the composition $h \circ g(x,y)$ which can be thought of as a rescaled version of the
 traditional geohash. To be precise, we would like a function $h$ to have the following properties:
 \begin{align}
-&h: [0,1] \rightarrow [0,1], \\ \label{hDef}
+&h: [0,1] \rightarrow [0,1], \label{hDef} \\
 &h(0) = 0, \\
 &h(1) = 1, \\
 &x < y \iff h(x) < h(y). \label{monotoneEq}
@@ -150,40 +151,131 @@ In the remainder of this document, we refer the $h_q \circ g(x,y)$ as a generali
 \subsection{The Empirical Entropic Geohash}
 
 We have introduced the concept of a generalized geohash in order to construct a spatial encoding
-scheme which better optimizes the entropy as defined in Equation~\ref{entropyDef}. Given that
-our application domain is intended for storing very large datasets, there should be little difference
-between working with the theoretical generating process of $\mathfrak{F}$ compared to working
-with the empirical distribution. See, for instance, the Dvoretzky–-Kiefer–-Wolfowitz inequality
-which shows a theoretical bound between these two distribution which decays like $e^{-n}$.
-
-Assume $\{z_i\}_{i=0}^M$ is a set of independent sample from realizations of the random variable
+scheme which better optimizes the entropy as defined in Equation~\ref{entropyDef}.
+Assume $\{z_i\}_{i=0}^N$ is a set of independent sample from realizations of the random variable
 $\mathfrak{F}$. The empirical cumulative distribution function $G$ of the standard geohash function
 $g(\cdot, \cdot)$ is given by
 \begin{align}
-G(t) &:= \frac{1}{M} \cdot \sum_{i=0}^{M} 1_{g(z_i) \leq t}, \, t \in [0,1]. \label{empGeohash}
+G(t) &:= \frac{1}{N} \cdot \sum_{i=0}^{N} 1_{g(z_i) \leq t}, \, t \in [0,1]. \label{empGeohash}
 \end{align}
 From Equation~\ref{empGeohash} we can define the balanced entropy maximizing geohash function
 $b$ (balanced), assuming that every point $z_i$ has a geohash $g(z_i)$ strictly between $0$ and
 $1$, to be
 \begin{align}
-b(t) :=
+b^q(t) :=
   \begin{cases}
     0 &\mbox{if } t = 0\\
     1 &\mbox{if } t = 1\\
-    \frac{M}{M+2} \cdot G^{-1}(t) &\mbox{if } \, \exists \, z_i \, \text{s.t.} \, g(z_i) = t \\
+    \frac{N}{N+2} \cdot G^{-1}(t) &\mbox{if } \, \exists \, i \in \mathbb{Z} \, \text{s.t.} \, t = i / 2^{q} \\
     \text{linear interpolation of the above points} & \text{else}
   \end{cases} \label{balancedHash}
 \end{align}
 The balanced geohash is essentialy the inverse of the empirical function $G$, with some minor
-variations to satisfy Equations~\ref{hDef}-\ref{monotoneEq}. If the points $\{z_i\}$ are unique,
-and $M$ is sufficently large, the $q$-bit analogue $b_q$ of Equation~\ref{balancedHash} will
-have an entropy $H(b_q)$ of approximately equal to $q$.
+variations to satisfy Equations~\ref{hDef}-\ref{monotoneEq}.
+If the points $\{z_i\}$ are unique, and $N$ is sufficently large, the $q$-bit analogue $b_q$
+of Equation~\ref{balancedHash} will have an entropy $H(b_q)$ of approximately equal to $q$.
+
+More formally, we can prove the following bound on the entropy of the balanced geohash:
+\begin{thm} \label{entropyThm}
+Let $b_q^q$ be the entropy balanced geohash estimated from a sample of $N$ unique data points. Then,
+with probability at least $1 - 2 e^{-0.49 \cdot 2^{-2q} N \cdot [1 - A]^2}$ the entropy
+$H(b_q^q)$ is bounded by the following simultaneously for all values $A \in [0,1]$:
+\begin{align}
+H(b_q^q) &\geq q \cdot \frac{N}{N+2} \cdot A
+\end{align}
+\end{thm}
+\begin{proof}
+Let $F(\cdot)$ be the true cumulative distribution function of the variable $\mathfrak{F}$,
+and $F_N(\cdot)$ be the empirical cumulative distribution function from a sample of $N$
+independent observations. Setting $\epsilon = [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}$,
+the Dvoretzky–-Kiefer–-Wolfowitz inequality states that the follow holds for all values
+$A \in [0,1]$ with probability $1 - e^{-2N\epsilon}$:
+\begin{align}
+|F(x) - F_n(x)| \leq [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}
+\end{align}
+Therefore, the empirical entropy should be bounded as follows:
+\begin{align}
+H(b_q^q) &\geq -1 \cdot \sum_{i=0}^{2^q-1} \left[F(i/2^q) - F((i+1)/2^q)\right] \times
+  \log_2 \left[F(i/2^q) - F((i+1)/2^q)\right] \\
+&\geq -1 \cdot \sum_{i=0}^{2^q-1} \left[F_n(i/2^q) - F_n((i+1)/2^q) - 2\epsilon \right] \times
+  \log_2 \left[F_n(i/2^q) - F_n((i+1)/2^q) - 2\epsilon \right] \\
+&= -2^{q} \cdot \left[\frac{N}{N+2} \cdot \frac{1}{2^q} - 2 \epsilon \right] \times
+  \log_2 \left[\frac{N}{N+2} \cdot \frac{1}{2^q} - 2 \epsilon  \right] \\
+&= -1 \cdot \frac{N}{N+2} A \times \log_2 \left[\frac{N}{N+2} \cdot \frac{1}{2^q} \cdot A  \right] \\
+&\geq q \cdot \frac{N}{N+2} A
+\end{align}
+Which, plugging in the appropriate $\epsilon$ into the probablity bound, yields the desired result.
+\end{proof}
+Plugging in $A=2/3$, the bound in Theorem~\ref{entropyThm} holds with probability greater than $0.99$
+for a 5-bit balanced geohash when $N$ is at least $1e5$ and for a 10-bit geohash when $N$ is at
+least $1e8$. We will see in the our empirical examples that the rate of convergence of the entropy
+to $q$ is typically much faster.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Census Data Example}
 
 \subsection{Population based}
 
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrrrrrrrrrrr}
+  \hline
+ & V2 & V3 & V4 & V7 & V8 & V9 & V10 & V11 & V12 & V13 & V14 & V15 & V16 & V17 & V18 & V19 & V20 \\
+  \hline
+alabama & 0.00 & 0.88 & 6.74 & 0.00 & 0.85 & 6.30 & 13.13 & 1.00 & 5.00 & 10.00 & 15.64 & 15.84 & 1.00 & 4.95 & 9.75 & 14.53 & 14.71 \\
+  alaska & 0.41 & 1.94 & 5.41 & 0.43 & 1.94 & 4.91 & 10.36 & 1.00 & 5.00 & 9.91 & 12.26 & 12.45 & 1.00 & 4.89 & 9.57 & 11.64 & 11.79 \\
+  arizona & 0.00 & 0.95 & 5.08 & 0.00 & 0.84 & 4.53 & 12.11 & 1.00 & 5.00 & 10.00 & 15.39 & 15.74 & 1.00 & 4.92 & 9.76 & 14.12 & 14.37 \\
+  arkansas & 0.09 & 0.51 & 6.72 & 0.11 & 0.53 & 6.25 & 12.64 & 1.00 & 5.00 & 9.99 & 15.11 & 15.35 & 1.00 & 4.96 & 9.79 & 14.11 & 14.34 \\
+  california & 0.00 & 0.78 & 6.59 & 0.00 & 0.78 & 6.23 & 13.88 & 1.00 & 5.00 & 10.00 & 16.91 & 17.65 & 0.99 & 4.95 & 9.85 & 16.14 & 16.74 \\
+  colorado & 0.00 & 0.86 & 5.19 & 0.00 & 0.83 & 4.66 & 11.82 & 1.00 & 5.00 & 10.00 & 15.27 & 15.60 & 1.00 & 4.91 & 9.69 & 13.97 & 14.23 \\
+  connecticut & 0.00 & 0.00 & 4.31 & 0.00 & 0.00 & 4.05 & 11.13 & 1.00 & 5.00 & 10.00 & 14.56 & 14.61 & 1.00 & 4.91 & 9.59 & 13.31 & 13.34 \\
+  delaware & 0.00 & 0.98 & 3.55 & 0.00 & 0.94 & 3.20 & 9.51 & 1.00 & 5.00 & 9.94 & 12.89 & 12.92 & 0.97 & 4.86 & 9.34 & 11.51 & 11.53 \\
+  D.C. & 0.00 & 0.00 & 1.22 & 0.00 & 0.00 & 1.23 & 7.24 & 1.00 & 5.00 & 9.76 & 11.33 & 11.33 & 0.99 & 4.94 & 9.44 & 10.48 & 10.48 \\
+  florida & 0.00 & 0.98 & 6.57 & 0.00 & 0.97 & 6.25 & 13.72 & 1.00 & 5.00 & 10.00 & 16.46 & 16.99 & 1.00 & 4.97 & 9.83 & 15.51 & 15.94 \\
+  georgia & 0.00 & 1.00 & 6.48 & 0.00 & 1.00 & 6.13 & 13.46 & 1.00 & 5.00 & 10.00 & 15.61 & 15.88 & 1.00 & 4.94 & 9.75 & 14.61 & 14.87 \\
+  hawaii & 0.00 & 0.81 & 3.35 & 0.00 & 0.80 & 3.32 & 9.34 & 1.00 & 5.00 & 9.91 & 12.24 & 12.30 & 0.99 & 4.88 & 9.62 & 11.61 & 11.66 \\
+  idaho & 0.74 & 1.41 & 5.44 & 0.77 & 1.40 & 5.19 & 11.30 & 1.00 & 5.00 & 9.99 & 14.35 & 14.57 & 1.00 & 4.93 & 9.69 & 13.41 & 13.57 \\
+  illinois & 0.37 & 0.83 & 5.75 & 0.35 & 0.77 & 5.07 & 12.60 & 1.00 & 5.00 & 10.00 & 16.61 & 17.19 & 0.98 & 4.87 & 9.73 & 15.36 & 15.79 \\
+  indiana & 0.00 & 0.75 & 6.52 & 0.00 & 0.73 & 6.14 & 12.83 & 1.00 & 5.00 & 10.00 & 15.99 & 16.39 & 1.00 & 4.94 & 9.74 & 14.73 & 15.06 \\
+  iowa & 0.00 & 0.00 & 6.79 & 0.00 & 0.00 & 6.38 & 12.17 & 1.00 & 5.00 & 10.00 & 15.25 & 15.83 & 1.00 & 4.98 & 9.77 & 13.91 & 14.31 \\
+  kansas & 0.00 & 0.38 & 6.01 & 0.00 & 0.33 & 5.62 & 11.76 & 1.00 & 5.00 & 10.00 & 15.00 & 15.59 & 1.00 & 4.95 & 9.72 & 13.68 & 14.12 \\
+  kentucky & 0.00 & 0.00 & 6.55 & 0.00 & 0.00 & 6.08 & 12.71 & 1.00 & 5.00 & 10.00 & 15.09 & 15.27 & 1.00 & 4.95 & 9.77 & 14.17 & 14.34 \\
+  louisiana & 0.32 & 0.32 & 6.08 & 0.28 & 0.28 & 5.49 & 12.35 & 1.00 & 5.00 & 10.00 & 15.29 & 15.54 & 1.00 & 4.93 & 9.75 & 14.31 & 14.51 \\
+  maine & 0.49 & 0.59 & 5.89 & 0.46 & 0.56 & 5.46 & 11.39 & 1.00 & 5.00 & 9.99 & 13.95 & 14.03 & 1.00 & 4.89 & 9.64 & 13.01 & 13.09 \\
+  maryland & 0.00 & 0.87 & 4.69 & 0.00 & 0.79 & 4.34 & 11.53 & 1.00 & 5.00 & 10.00 & 14.93 & 15.06 & 1.00 & 4.93 & 9.65 & 13.62 & 13.72 \\
+  massachusetts & 0.00 & 0.00 & 4.72 & 0.00 & 0.00 & 4.32 & 11.58 & 1.00 & 5.00 & 10.00 & 15.54 & 15.68 & 0.98 & 4.91 & 9.71 & 14.45 & 14.55 \\
+  michigan & 0.28 & 0.28 & 6.44 & 0.26 & 0.26 & 5.88 & 13.20 & 1.00 & 5.00 & 10.00 & 16.36 & 16.73 & 1.00 & 4.94 & 9.75 & 14.91 & 15.21 \\
+  minnesota & 1.00 & 1.00 & 6.11 & 0.98 & 0.98 & 5.35 & 12.11 & 1.00 & 5.00 & 10.00 & 15.59 & 16.00 & 0.98 & 4.89 & 9.65 & 13.73 & 14.03 \\
+  mississippi & 0.93 & 1.73 & 6.89 & 0.96 & 1.74 & 6.48 & 12.73 & 1.00 & 5.00 & 9.99 & 15.02 & 15.22 & 1.00 & 4.95 & 9.75 & 13.97 & 14.16 \\
+  missouri & 0.23 & 0.61 & 6.52 & 0.24 & 0.60 & 6.08 & 12.89 & 1.00 & 5.00 & 10.00 & 15.84 & 16.26 & 1.00 & 4.92 & 9.76 & 14.70 & 15.09 \\
+  montana & 0.03 & 0.98 & 6.33 & 0.04 & 1.00 & 5.79 & 11.13 & 1.00 & 5.00 & 9.99 & 14.09 & 14.38 & 1.00 & 4.93 & 9.69 & 13.18 & 13.40 \\
+  nebraska & 0.00 & 0.32 & 5.60 & 0.00 & 0.32 & 5.21 & 11.16 & 1.00 & 5.00 & 10.00 & 14.78 & 15.28 & 1.00 & 4.93 & 9.66 & 13.39 & 13.71 \\
+  nevada & 0.00 & 0.72 & 3.35 & 0.00 & 0.71 & 2.91 & 10.55 & 1.00 & 5.00 & 9.98 & 13.78 & 13.94 & 0.99 & 4.92 & 9.72 & 12.61 & 12.72 \\
+  new\_hampshire & 0.01 & 0.01 & 4.70 & 0.01 & 0.01 & 4.48 & 10.70 & 1.00 & 5.00 & 9.98 & 13.65 & 13.70 & 1.00 & 4.86 & 9.48 & 12.47 & 12.51 \\
+  new\_jersey & 0.00 & 0.17 & 4.69 & 0.00 & 0.17 & 4.15 & 11.56 & 1.00 & 5.00 & 10.00 & 15.83 & 16.01 & 0.96 & 4.87 & 9.68 & 14.36 & 14.49 \\
+  new\_mexico & 0.00 & 0.84 & 5.46 & 0.00 & 0.83 & 4.89 & 11.23 & 1.00 & 5.00 & 9.99 & 14.43 & 14.70 & 0.98 & 4.90 & 9.68 & 13.29 & 13.46 \\
+  new\_york & 0.00 & 0.28 & 5.28 & 0.00 & 0.26 & 4.15 & 11.76 & 1.00 & 5.00 & 10.00 & 16.25 & 16.64 & 0.97 & 4.83 & 9.74 & 14.99 & 15.25 \\
+  north\_carolina & 0.00 & 0.89 & 6.89 & 0.00 & 0.90 & 6.59 & 14.01 & 1.00 & 5.00 & 10.00 & 16.08 & 16.32 & 1.00 & 4.97 & 9.82 & 15.21 & 15.44 \\
+  north\_dakota & 0.00 & 0.78 & 5.71 & 0.00 & 0.73 & 4.61 & 9.80 & 1.00 & 5.00 & 9.98 & 13.71 & 14.07 & 0.99 & 4.88 & 9.45 & 11.86 & 12.02 \\
+  ohio & 0.00 & 0.61 & 6.59 & 0.00 & 0.63 & 6.17 & 13.45 & 1.00 & 5.00 & 10.00 & 16.40 & 16.83 & 1.00 & 4.95 & 9.80 & 15.23 & 15.61 \\
+  oklahoma & 0.00 & 0.05 & 6.25 & 0.00 & 0.05 & 5.67 & 12.35 & 1.00 & 5.00 & 10.00 & 15.35 & 15.80 & 1.00 & 4.95 & 9.76 & 14.19 & 14.57 \\
+  oregon & 0.99 & 1.29 & 5.46 & 0.99 & 1.29 & 5.10 & 11.87 & 1.00 & 5.00 & 10.00 & 14.96 & 15.25 & 1.00 & 4.96 & 9.79 & 14.02 & 14.24 \\
+  pennsylvania & 0.00 & 0.84 & 6.39 & 0.00 & 0.86 & 5.96 & 13.18 & 1.00 & 5.00 & 10.00 & 16.65 & 17.17 & 1.00 & 4.96 & 9.82 & 15.50 & 16.00 \\
+  rhode\_island & 0.00 & 0.00 & 2.55 & 0.00 & 0.00 & 2.35 & 9.34 & 1.00 & 5.00 & 9.97 & 13.29 & 13.31 & 0.99 & 4.88 & 9.58 & 12.36 & 12.37 \\
+  south\_carolina & 0.00 & 0.96 & 6.21 & 0.00 & 0.98 & 5.85 & 13.07 & 1.00 & 5.00 & 10.00 & 15.31 & 15.49 & 1.00 & 4.96 & 9.80 & 14.38 & 14.53 \\
+  south\_dakota & 0.54 & 1.33 & 6.08 & 0.51 & 1.32 & 5.53 & 10.56 & 1.00 & 5.00 & 9.97 & 13.81 & 14.11 & 1.00 & 4.94 & 9.59 & 12.37 & 12.56 \\
+  tennessee & 0.20 & 0.20 & 6.49 & 0.28 & 0.28 & 6.08 & 13.29 & 1.00 & 5.00 & 10.00 & 15.69 & 15.93 & 1.00 & 4.96 & 9.77 & 14.65 & 14.86 \\
+  texas & 0.00 & 0.94 & 7.27 & 0.00 & 0.85 & 6.74 & 14.07 & 1.00 & 5.00 & 10.00 & 16.71 & 17.56 & 1.00 & 4.95 & 9.80 & 15.43 & 16.05 \\
+  utah & 0.00 & 0.59 & 4.33 & 0.00 & 0.61 & 3.89 & 10.86 & 1.00 & 5.00 & 10.00 & 14.44 & 14.63 & 1.00 & 4.85 & 9.54 & 13.11 & 13.23 \\
+  vermont & 0.04 & 0.04 & 5.32 & 0.04 & 0.04 & 4.98 & 10.58 & 1.00 & 5.00 & 9.93 & 12.92 & 12.95 & 0.99 & 4.92 & 9.57 & 12.01 & 12.04 \\
+  virginia & 0.00 & 0.74 & 6.03 & 0.00 & 0.73 & 5.62 & 12.77 & 1.00 & 5.00 & 9.99 & 15.51 & 15.72 & 1.00 & 4.93 & 9.73 & 14.41 & 14.60 \\
+  washington & 0.00 & 0.09 & 5.76 & 0.00 & 0.08 & 5.35 & 12.48 & 1.00 & 5.00 & 10.00 & 15.47 & 15.76 & 1.00 & 4.95 & 9.75 & 14.42 & 14.65 \\
+  west\_virginia & 0.00 & 1.29 & 6.20 & 0.00 & 1.26 & 5.78 & 12.13 & 1.00 & 5.00 & 9.99 & 14.61 & 14.79 & 1.00 & 4.95 & 9.76 & 13.84 & 14.00 \\
+  wisconsin & 1.08 & 1.08 & 6.59 & 0.93 & 0.93 & 5.95 & 12.49 & 1.00 & 5.00 & 10.00 & 15.88 & 16.25 & 1.00 & 4.94 & 9.77 & 14.37 & 14.65 \\
+  wyoming & 0.00 & 0.00 & 5.75 & 0.00 & 0.00 & 5.42 & 10.15 & 1.00 & 5.00 & 9.97 & 13.43 & 13.59 & 1.00 & 4.92 & 9.59 & 12.42 & 12.52 \\
+   \hline
+\end{tabular}
+\end{table}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
