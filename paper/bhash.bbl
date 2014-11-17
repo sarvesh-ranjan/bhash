@@ -1,0 +1,131 @@
+\begin{thebibliography}{10}
+
+\bibitem{bayer1972symmetric}
+Rudolf Bayer.
+\newblock Symmetric binary b-trees: Data structure and maintenance algorithms.
+\newblock {\em Acta informatica}, 1(4):290--306, 1972.
+
+\bibitem{beckmann1990r}
+Norbert Beckmann, Hans-Peter Kriegel, Ralf Schneider, and Bernhard Seeger.
+\newblock {\em The R*-tree: an efficient and robust access method for points
+  and rectangles}, volume~19.
+\newblock ACM, 1990.
+
+\bibitem{chang2008bigtable}
+Fay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson~C Hsieh, Deborah~A Wallach,
+  Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert~E Gruber.
+\newblock Bigtable: A distributed storage system for structured data.
+\newblock {\em ACM Transactions on Computer Systems (TOCS)}, 26(2):4, 2008.
+
+\bibitem{chodorow2013mongodb}
+Kristina Chodorow.
+\newblock {\em MongoDB: the definitive guide}.
+\newblock " O'Reilly Media, Inc.", 2013.
+
+\bibitem{decandia2007dynamo}
+Giuseppe DeCandia, Deniz Hastorun, Madan Jampani, Gunavardhan Kakulapati,
+  Avinash Lakshman, Alex Pilchin, Swaminathan Sivasubramanian, Peter Vosshall,
+  and Werner Vogels.
+\newblock Dynamo: amazon's highly available key-value store.
+\newblock In {\em ACM SIGOPS Operating Systems Review}, volume 41:6, pages
+  205--220. ACM, 2007.
+
+\bibitem{dvoretzky1956asymptotic}
+Aryeh Dvoretzky, Jack Kiefer, and Jacob Wolfowitz.
+\newblock Asymptotic minimax character of the sample distribution function and
+  of the classical multinomial estimator.
+\newblock {\em The Annals of Mathematical Statistics}, pages 642--669, 1956.
+
+\bibitem{fox2013spatio}
+Anthony Fox, Chris Eichelberger, James Hughes, and Skylar Lyon.
+\newblock Spatio-temporal indexing in non-relational distributed databases.
+\newblock In {\em Big Data, 2013 IEEE International Conference on}, pages
+  291--299. IEEE, 2013.
+
+\bibitem{fuchs2012accumulo}
+Adam Fuchs.
+\newblock Accumulo--extensions to google’s bigtable design.
+\newblock Technical report, Technical report, National Security Agency, 2012.
+
+\bibitem{ghemawat2003google}
+Sanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung.
+\newblock The google file system.
+\newblock In {\em ACM SIGOPS Operating Systems Review}, volume~37, pages
+  29--43. ACM, 2003.
+
+\bibitem{guttman1984r}
+Antonin Guttman.
+\newblock {\em R-trees: a dynamic index structure for spatial searching},
+  volume~14.
+\newblock ACM, 1984.
+
+\bibitem{han2013hgrid}
+Dan Han and Eleni Stroulia.
+\newblock Hgrid: A data model for large geospatial data sets in hbase.
+\newblock In {\em Proceedings of the 2013 IEEE Sixth International Conference
+  on Cloud Computing}, pages 910--917. IEEE Computer Society, 2013.
+
+\bibitem{lakshman2010cassandra}
+Avinash Lakshman and Prashant Malik.
+\newblock Cassandra: a decentralized structured storage system.
+\newblock {\em ACM SIGOPS Operating Systems Review}, 44(2):35--40, 2010.
+
+\bibitem{ma2013st}
+Youzhong Ma, Yu~Zhang, and Xiaofeng Meng.
+\newblock St-hbase: a scalable data management system for massive geo-tagged
+  objects.
+\newblock In {\em Web-Age Information Management}, pages 155--166. Springer,
+  2013.
+
+\bibitem{samet1985storing}
+Hanan Samet and Robert~E Webber.
+\newblock Storing a collection of polygons using quadtrees.
+\newblock {\em ACM Transactions on Graphics (TOG)}, 4(3):182--222, 1985.
+
+\bibitem{shvachko2010hadoop}
+Konstantin Shvachko, Hairong Kuang, Sanjay Radia, and Robert Chansler.
+\newblock The hadoop distributed file system.
+\newblock In {\em Mass Storage Systems and Technologies (MSST), 2010 IEEE 26th
+  Symposium on}, pages 1--10. IEEE, 2010.
+
+\bibitem{stout1986tree}
+Quentin~F. Stout and Bette~L. Warren.
+\newblock Tree rebalancing in optimal time and space.
+\newblock {\em Communications of the ACM}, 29(9):902--908, 1986.
+
+\bibitem{taylor2010overview}
+Ronald~C Taylor.
+\newblock An overview of the hadoop/mapreduce/hbase framework and its current
+  applications in bioinformatics.
+\newblock {\em BMC bioinformatics}, 11(Suppl 12):S1, 2010.
+
+\bibitem{zhong2013vegacache}
+Yunqin Zhong, Jinyun Fang, and Xiaofang Zhao.
+\newblock Vegacache: Efficient and progressive spatio-temporal data caching
+  scheme for online geospatial applications.
+\newblock In {\em Geoinformatics (GEOINFORMATICS), 2013 21st International
+  Conference on}, pages 1--7. IEEE, 2013.
+
+\bibitem{zhong2012distributed}
+Yunqin Zhong, Jizhong Han, Tieying Zhang, and Jinyun Fang.
+\newblock A distributed geospatial data storage and processing framework for
+  large-scale webgis.
+\newblock In {\em Geoinformatics (GEOINFORMATICS), 2012 20th International
+  Conference on}, pages 1--7. IEEE, 2012.
+
+\bibitem{zhong2012towards}
+Yunqin Zhong, Jizhong Han, Tieying Zhang, Zhenhua Li, Jinyun Fang, and Guihai
+  Chen.
+\newblock Towards parallel spatial query processing for big spatial data.
+\newblock In {\em Parallel and Distributed Processing Symposium Workshops \&
+  PhD Forum (IPDPSW), 2012 IEEE 26th International}, pages 2085--2094. IEEE,
+  2012.
+
+\bibitem{zhong2012elastic}
+Yunqin Zhong, Xiaomin Zhu, and Jinyun Fang.
+\newblock Elastic and effective spatio-temporal query processing scheme on
+  hadoop.
+\newblock In {\em Proceedings of the 1st ACM SIGSPATIAL International Workshop
+  on Analytics for Big Geospatial Data}, pages 33--42. ACM, 2012.
+
+\end{thebibliography}

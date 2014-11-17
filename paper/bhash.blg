@@ -1,0 +1,54 @@
+This is BibTeX, Version 0.99d (TeX Live 2014)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: bhash.aux
+The style file: plain.bst
+Database file #1: bhash.bib
+Repeated entry---line 152 of file bhash.bib
+ : @book{chodorow2013mongodb
+ :                          ,
+I'm skipping whatever remains of this entry
+Warning--can't use both volume and number fields in beckmann1990r
+Warning--can't use both volume and number fields in ghemawat2003google
+Warning--can't use both volume and number fields in guttman1984r
+You've used 21 entries,
+            2118 wiz_defined-function locations,
+            619 strings with 7918 characters,
+and the built_in function-call counts, 8530 in all, are:
+= -- 863
+> -- 398
+< -- 15
++ -- 162
+- -- 136
+* -- 587
+:= -- 1346
+add.period$ -- 73
+call.type$ -- 21
+change.case$ -- 129
+chr.to.int$ -- 0
+cite$ -- 24
+duplicate$ -- 347
+empty$ -- 653
+format.name$ -- 136
+if$ -- 1851
+int.to.chr$ -- 0
+int.to.str$ -- 21
+missing$ -- 23
+newline$ -- 108
+num.names$ -- 42
+pop$ -- 153
+preamble$ -- 1
+purify$ -- 110
+quote$ -- 0
+skip$ -- 250
+stack$ -- 0
+substring$ -- 512
+swap$ -- 121
+text.length$ -- 15
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 78
+warning$ -- 3
+while$ -- 85
+width$ -- 23
+write$ -- 244
+(There was 1 error message)

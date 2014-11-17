@@ -1,16 +1,18 @@
-\documentclass{article} % For LaTeX2e
+\documentclass[nips13submit_09,times,art10]{article} % For LaTeX2e
 \usepackage{nips13submit_e,times}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
+\usepackage{graphicx}
 %\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
 
 \newtheorem{thm}{Theorem}
 
-\title{An Entropy Maximizing Geohash for Distributed Spatiotemporal Database Indexing}
+\bibliographystyle{plain}
 
+\title{An Entropy Maximizing Geohash for Distributed Spatiotemporal Database Indexing}
 
 \author{
 Taylor~B.~Arnold \\
@@ -39,38 +41,159 @@ New York, NY 10007 \\
 
 \begin{abstract}
 We present a modification of the standard geohash algorithm
-for which the data volume, rather than spatial area, is constant
-for a given hash prefix length. This property is particularly
-useful for indexing large distributed databases, where load
-distribution of large range scans is an imporant aspect of
-query performance. Distributed spatiotemporal databases, which
-typically require interleaving spatial and temporal elements
-into a single key, reap additional benefits from a balanced
-geohash by creating a consistent balance between spatial and
-temporal precision even across areas of varying data density.
-We apply our algorithm to data generated proportional to population
-as given by census block population counts provided from the
-US Census Bureau. An efficent implementation for calculating an
-arbitrary balanced geohash is also provided.
+based on maximum entropy encoding in which the data volume
+is approximately constant for a given hash prefix length.
+Distributed spatiotemporal databases, which typically require interleaving
+spatial and temporal elements into a single key, reap large benefits
+from a balanced geohash by creating a consistent balance between spatial
+and temporal precision even across areas of varying data density.
+This property also useful for indexing purely spatial datasets,
+where load distribution of large range scans is an imporant aspect
+of query performance.  We apply our algorithm to data generated
+proportional to population as given by census block population
+counts provided from the US Census Bureau. An efficent implementation
+for calculating an arbitrary balanced geohash is also provided.
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Introduction}
+\section{Introduction}  \label{sec:intro}
 
-Queries over large distributed
-databases often take the form of a series of large range scans;
-balancin
+There has been a rapid increase in petabyte-scale data sources across
+a range of industry, government, and academic applications. Many of
+these sources include data tagged with both geospatial and temporal
+attributes. Website HTTP request logs, along with geocoded IP addresses,
+are a common example where even modestly sized sites can quickly produce
+large-scale datasets. Inexensive embedded GPS devices are another common
+source, and are typically found in everything from automobiles to cellphones.
+Sensor data from Radio-frequency identification (RFID) devices, which have
+been readily adapted to monitor complex supply-chain management operations,
+amongst other applications, also generate large datasets with both location
+and time-based features.
+
+General purpose distributed filesystems such as the Google Filesystem \cite{ghemawat2003google}
+and the Hadoop Filesystem \cite{shvachko2010hadoop}, provide adequate
+support for the raw storage of geospatial data sources. These alone however only
+provide minimal support for querying file chunks. Analysis, aggregations, and filtering
+often require processing through a large subset of the raw data. Database functionality
+is provided by additional software, often modelled off of Google's
+BigTable \cite{chang2008bigtable} design. Data are stored lexicographically
+by a primary key; queries take the form of a scan over a range of contiguous
+primary keys along with optional, additional query filters.
+Popular open source implementations of this form include Amazon's DynamoDB \cite{decandia2007dynamo},
+Apache Accumulo \cite{fuchs2012accumulo}, Apache HBase \cite{taylor2010overview},
+and Apache Cassandra \cite{lakshman2010cassandra}.
+
+For geospatial data sources which are typically queried on an entity--by--entity basis, the
+standard distributed database applications are straightforward to implement. A uniquely
+identifying serial number for each entity can be used as the primary key, with spatial
+and temporal filtering accomplished with a combination of in-database filters as a single
+entity will typically constitute only a negligable proportion of the overall data volume.
+This application model for example would satisfy the needs of a user-facing supply chain
+system in which end-users search for the current location of an expected delivery.
+Unfortunately, more complex spatial queries do not fit neatly into the distributed database
+design. A single primary key is natively one-dimensional, whereas geospatial data
+is typically two-dimensional and, with the addition of a temporal component, often
+no less than three. A common method for alleviating the dimensionality problem of having a single primary
+index is through the use of a space-filling curves such as Peano, Gosper, and Dragon
+curves. A geohash is a particular algorithm which uses a space-filling curve for
+encoding latitude and longitude tuples as a single string. It has had fairly wide adoption
+for this purpose; for example, it has been included as a core functionality in the popular
+distributed document store MongoDB \cite{chodorow2013mongodb}.
+
+The geohash concept adapts well for purely geospatial distributed datasets, allowing for
+querying spatial regions of vastly different scales through the use of a single index; larger
+regions specify a longer range of geohashes whereas smaller regions specify a shorter range.
+A temporal component can incorporated into the space-filling curve underlying a standard
+geohash, however this requires an unavoidable, fixed database design decision as to the
+appropriate scaling factor between space and time. For instance: should a square kilometre
+bucket in space coorispond to a month, day, or hour bucket in time? The decision has
+important performance implications as spatial queries take the form of a collection of
+range queries of primary keys. If the buckets are not appropriately sized queries will either
+include many false positives (data returned outside of the area of interest) or require
+stitching together a large number of small scans. Either of these can cause significant
+performance deterioration, due to additional I/O time in the case of false positives and
+additional overhead in running a large number of small jobs.
+
+In many cases the question of how to balance space and time into a single key is complicated
+by the fact that data are distributed very unevenly over the spatial dimensions. Sources
+which are generated roughly proportional to population density will produce 4 orders of
+magnitude or more in urban environments compared to rural ones. In these common cases, it
+is often more natural to scale the spatial buckets to be proprotional to the data volume.
+In this case, we instead only need to decide: should a bucket with 1 million data points
+coorispond to month, day, or hour bucket in time? This question will typically have a more
+natural answer for a given database system than the previous one, particularly when the
+query results are used as inputs to complex algorithm such as recommender systems or
+anomaly detection routines.
+
+In order to implement a data balanced alternative to the standard space filling curves,
+we present a novel entropy maximizing geohash. Our method is necessarily model base and
+learned from a small subset of spatial data. It is robust both to random noise and
+model drift. It can implemented with only a modest increase in computational complexity
+and is generic enough to be implemented as-is in conjuction with several recently
+proposed geohash based schemes for storing large geospatial--temporal datasets. As a
+side effect of the entropy based encoding it has also reduces the size of the raw database
+files; this has been observed even after applying aggressive compression techniques.
+
+The remainder of this article is organized as follows: Section~\ref{sec:related}
+provides a brief literature review of geospatial database techniques with a particular
+focus on how these can be used in conjuction with our methods.
+In Section~\ref{sec:geohash} we give a thorough mathematical description of the standard
+geohash algorithm and present the formulation for entropy maximizing geohash.
+Theorem~\ref{entropyThm} establishes an upper bound on how well the maximized geohash
+an be learnt from a sample of spatial data. Section~\ref{sec:census} applies the
+entropic geohash to data based on data from the US Census Bureau, and empirically
+demonstrates how robust the method is to model drift.
+Section~\ref{sec:hbase} gives results from an implemention of the geohash in HBase
+using synthetic data generated from the Census bureau and Section~\ref{sec:future}
+provides avenues for future extensions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Entropy Balanced Geohash}
+\section{Related Work} \label{sec:related}
+
+There is a long history of database work on data structures for
+optimizing geospatial and geospatial-temporal queries such
+as $k$-nearest neighbors and spatial joins. Common examples
+include R-trees \cite{guttman1984r},
+$R^{*}$-trees \cite{beckmann1990r}, and quadtrees \cite{samet1985storing}.
+These algorithms often offer superior performance to simple space filling
+curves by replicating the true dimensionality of the problem by an abstraction
+of a trees as linked lists. Unfortunately linked lists are do not fit into
+the primary key design scheme of the distributed databases mentioned in
+the previous section making these more sophisticated algorithms out of
+reach for productionalized systems.
+
+Some research has been done towards producing a distributed database which would
+be able natively implement the geospatial temporal database structures which have been successful
+on single machine scale applications. These include VegaGiStore \cite{zhong2012towards},
+VegaCache \cite{zhong2013vegacache} and VegaCI \cite{zhong2012distributed}, \cite{zhong2012elastic}.
+However at this time these remain merely theoretical as no distribution of any of these
+has even been publicly distributed, let alone developed to the maturity needed for a
+production system.
+
+The simplier approach of adapting geohashes by interleavings spatial and temporal dimensions
+has also been explored. Given that these can be quickly implemented on top of existing industry
+standard databases this is the approach we have choosen to augment with our work. Fox et al.
+developed a generic approach for blending these two dimensions, along with methods for
+extending to lines and polygons and for producing fast queries in Apache Accumulo \cite{fox2013spatio}.
+The HGrid data model is a similar application which takes advantage of the specific secondary
+indicies and related optimizations present in HBase \cite{han2013hgrid}. These both rely on
+specifying the relative resolution of the spatial and temporal dimensions, and would would be
+adaptable with no major changes to use our entropy maximizing geohash.
+
+Finally, we note that the desire for a data balanced design which motivated our work is a
+natural consequence of efficent query design, and has driven much of the advanced tree-based
+work. Red–-black trees \cite{bayer1972symmetric} and the Day–-Stout–-Warren algorithm
+for binary trees \cite{stout1986tree} are two important examples. In this context, the
+entropy maximizing geohash can be thought of as the curve filling analogue to balanced trees.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Entropy Balanced Geohash}  \label{sec:geohash}
 
 \subsection{A Formulation of the Standard Geohash Encoding}
 
-A geohash is a scheme for mapping two-dimensional coordinates into a
-hierarchical, one-dimensional encoding. It is explained in several
-other sources, but we re-construct it here in a format which will be
-most conducive to generalizations.
-
+As mentioned, a geohash is a simple scheme for mapping two-dimensional coordinates into a
+hierarchical, one-dimensional encoding. It is explained in several other sources, but we
+re-construct it here in a format which will be most conducive to generalizations.
 The first step is to map latitude and longitude coordinates in a
 standard unit square; this is done by the following linear mapping:
 \begin{align}
@@ -83,8 +206,9 @@ on any continuous two-dimensional data, and could be used  as-is to encode other
 two-dimensional datasets.
 
 The $x$ and $y$ coordinates need to be expressed in as a binary decimals.
-Formally, we define the unique $x_i \in \{0,1 \}$ and $y_i \in \{0,1\}$
-such that
+Formally, we define the $x_i \in \{0,1 \}$ and $y_i \in \{0,1\}$
+(with the restriction that neither is allowed to have an infinite trailing
+tail with all `1's, for uniqueness) such that
 \begin{align}
 x &= \sum_{i=1}^{\infty} \frac{x_i}{2^i},\\
 y &= \sum_{i=1}^{\infty} \frac{y_i}{2^i}.
@@ -128,7 +252,7 @@ precision geohash, which we denote as simply $g(\cdot, \cdot)$, to be the limit
 \lim_{q \rightarrow \infty} g_q(x,y) &:= g(x,y).
 \end{align}
 With this continuous format, one can see that if we compose $g$ with an appropriate new function
-$h$, the composition $h \circ g(x,y)$ which can be thought of as a rescaled version of the
+$h$, the composition $h \circ g(x,y)$ can be thought of as a rescaled version of the
 traditional geohash. To be precise, we would like a function $h$ to have the following properties:
 \begin{align}
 &h: [0,1] \rightarrow [0,1], \label{hDef} \\
@@ -137,8 +261,7 @@ traditional geohash. To be precise, we would like a function $h$ to have the fol
 &x < y \iff h(x) < h(y). \label{monotoneEq}
 \end{align}
 Note that Equation~\ref{monotoneEq} implies that $h$ is also continuous. From here, we can define
-the analogue to a $q$-bit geohash be truncating the binary representation of $w$, the value of
-$h(z)$,
+the analogue to a $q$-bit geohash by truncating the binary representation of $h(z) = w$,
 \begin{align}
 h(z) &= \sum_{i=1}^{\infty} \frac{w_i}{2^i}
 \end{align}
@@ -172,8 +295,8 @@ b^q(t) :=
 \end{align}
 The balanced geohash is essentialy the inverse of the empirical function $G$, with some minor
 variations to satisfy Equations~\ref{hDef}-\ref{monotoneEq}.
-If the points $\{z_i\}$ are unique, and $N$ is sufficently large, the $q$-bit analogue $b_q$
-of Equation~\ref{balancedHash} will have an entropy $H(b_q)$ of approximately equal to $q$.
+If the points $\{z_i\}$ are unique, and $N$ is sufficently large, the $q$-bit analogue $b_q^q$
+of Equation~\ref{balancedHash} will have an entropy $H(b_q^q)$ of approximately equal to $q$.
 
 More formally, we can prove the following bound on the entropy of the balanced geohash:
 \begin{thm} \label{entropyThm}
@@ -188,7 +311,8 @@ H(b_q^q) &\geq q \cdot \frac{N}{N+2} \cdot A
 Let $F(\cdot)$ be the true cumulative distribution function of the variable $\mathfrak{F}$,
 and $F_N(\cdot)$ be the empirical cumulative distribution function from a sample of $N$
 independent observations. Setting $\epsilon = [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}$,
-the Dvoretzky–-Kiefer–-Wolfowitz inequality states that the follow holds for all values
+the Dvoretzky–-Kiefer–-Wolfowitz inequality states \cite{dvoretzky1956asymptotic} that
+the follow holds for all values
 $A \in [0,1]$ with probability $1 - e^{-2N\epsilon}$:
 \begin{align}
 |F(x) - F_n(x)| \leq [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}
@@ -212,80 +336,106 @@ least $1e8$. We will see in the our empirical examples that the rate of converge
 to $q$ is typically much faster.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Census Data Example}
+\section{Census Data Example}  \label{sec:census}
 
 \subsection{Population based}
 
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{fig02}
+\label{fig:hash}
+\caption{Example entropy balanced geohash buckets (those which have a common prefix)
+of $3$,$4$,$5$, and $6$-bits learned from population data in the state of Ohio.
+Numbers are sequentially ordered from the smallest to the largest geohash buckets,
+and the buckets were truncated to the state boundaries to increase readability
+even though they theoretically extend outside as well.}
+\end{figure}
+
+\setlength{\tabcolsep}{.18em}
 \begin{table}[ht]
 \centering
-\begin{tabular}{rrrrrrrrrrrrrrrrrr}
+\begin{tabular}{|c|rrr|rrr|rrr|rrrrr|}
   \hline
- & V2 & V3 & V4 & V7 & V8 & V9 & V10 & V11 & V12 & V13 & V14 & V15 & V16 & V17 & V18 & V19 & V20 \\
+  & \multicolumn{6}{ |c| }{Geohash}    & \multicolumn{8}{ |c| }{Balanced Hash} \\
   \hline
-alabama & 0.00 & 0.88 & 6.74 & 0.00 & 0.85 & 6.30 & 13.13 & 1.00 & 5.00 & 10.00 & 15.64 & 15.84 & 1.00 & 4.95 & 9.75 & 14.53 & 14.71 \\
-  alaska & 0.41 & 1.94 & 5.41 & 0.43 & 1.94 & 4.91 & 10.36 & 1.00 & 5.00 & 9.91 & 12.26 & 12.45 & 1.00 & 4.89 & 9.57 & 11.64 & 11.79 \\
-  arizona & 0.00 & 0.95 & 5.08 & 0.00 & 0.84 & 4.53 & 12.11 & 1.00 & 5.00 & 10.00 & 15.39 & 15.74 & 1.00 & 4.92 & 9.76 & 14.12 & 14.37 \\
-  arkansas & 0.09 & 0.51 & 6.72 & 0.11 & 0.53 & 6.25 & 12.64 & 1.00 & 5.00 & 9.99 & 15.11 & 15.35 & 1.00 & 4.96 & 9.79 & 14.11 & 14.34 \\
-  california & 0.00 & 0.78 & 6.59 & 0.00 & 0.78 & 6.23 & 13.88 & 1.00 & 5.00 & 10.00 & 16.91 & 17.65 & 0.99 & 4.95 & 9.85 & 16.14 & 16.74 \\
-  colorado & 0.00 & 0.86 & 5.19 & 0.00 & 0.83 & 4.66 & 11.82 & 1.00 & 5.00 & 10.00 & 15.27 & 15.60 & 1.00 & 4.91 & 9.69 & 13.97 & 14.23 \\
-  connecticut & 0.00 & 0.00 & 4.31 & 0.00 & 0.00 & 4.05 & 11.13 & 1.00 & 5.00 & 10.00 & 14.56 & 14.61 & 1.00 & 4.91 & 9.59 & 13.31 & 13.34 \\
-  delaware & 0.00 & 0.98 & 3.55 & 0.00 & 0.94 & 3.20 & 9.51 & 1.00 & 5.00 & 9.94 & 12.89 & 12.92 & 0.97 & 4.86 & 9.34 & 11.51 & 11.53 \\
-  D.C. & 0.00 & 0.00 & 1.22 & 0.00 & 0.00 & 1.23 & 7.24 & 1.00 & 5.00 & 9.76 & 11.33 & 11.33 & 0.99 & 4.94 & 9.44 & 10.48 & 10.48 \\
-  florida & 0.00 & 0.98 & 6.57 & 0.00 & 0.97 & 6.25 & 13.72 & 1.00 & 5.00 & 10.00 & 16.46 & 16.99 & 1.00 & 4.97 & 9.83 & 15.51 & 15.94 \\
-  georgia & 0.00 & 1.00 & 6.48 & 0.00 & 1.00 & 6.13 & 13.46 & 1.00 & 5.00 & 10.00 & 15.61 & 15.88 & 1.00 & 4.94 & 9.75 & 14.61 & 14.87 \\
-  hawaii & 0.00 & 0.81 & 3.35 & 0.00 & 0.80 & 3.32 & 9.34 & 1.00 & 5.00 & 9.91 & 12.24 & 12.30 & 0.99 & 4.88 & 9.62 & 11.61 & 11.66 \\
-  idaho & 0.74 & 1.41 & 5.44 & 0.77 & 1.40 & 5.19 & 11.30 & 1.00 & 5.00 & 9.99 & 14.35 & 14.57 & 1.00 & 4.93 & 9.69 & 13.41 & 13.57 \\
-  illinois & 0.37 & 0.83 & 5.75 & 0.35 & 0.77 & 5.07 & 12.60 & 1.00 & 5.00 & 10.00 & 16.61 & 17.19 & 0.98 & 4.87 & 9.73 & 15.36 & 15.79 \\
-  indiana & 0.00 & 0.75 & 6.52 & 0.00 & 0.73 & 6.14 & 12.83 & 1.00 & 5.00 & 10.00 & 15.99 & 16.39 & 1.00 & 4.94 & 9.74 & 14.73 & 15.06 \\
-  iowa & 0.00 & 0.00 & 6.79 & 0.00 & 0.00 & 6.38 & 12.17 & 1.00 & 5.00 & 10.00 & 15.25 & 15.83 & 1.00 & 4.98 & 9.77 & 13.91 & 14.31 \\
-  kansas & 0.00 & 0.38 & 6.01 & 0.00 & 0.33 & 5.62 & 11.76 & 1.00 & 5.00 & 10.00 & 15.00 & 15.59 & 1.00 & 4.95 & 9.72 & 13.68 & 14.12 \\
-  kentucky & 0.00 & 0.00 & 6.55 & 0.00 & 0.00 & 6.08 & 12.71 & 1.00 & 5.00 & 10.00 & 15.09 & 15.27 & 1.00 & 4.95 & 9.77 & 14.17 & 14.34 \\
-  louisiana & 0.32 & 0.32 & 6.08 & 0.28 & 0.28 & 5.49 & 12.35 & 1.00 & 5.00 & 10.00 & 15.29 & 15.54 & 1.00 & 4.93 & 9.75 & 14.31 & 14.51 \\
-  maine & 0.49 & 0.59 & 5.89 & 0.46 & 0.56 & 5.46 & 11.39 & 1.00 & 5.00 & 9.99 & 13.95 & 14.03 & 1.00 & 4.89 & 9.64 & 13.01 & 13.09 \\
-  maryland & 0.00 & 0.87 & 4.69 & 0.00 & 0.79 & 4.34 & 11.53 & 1.00 & 5.00 & 10.00 & 14.93 & 15.06 & 1.00 & 4.93 & 9.65 & 13.62 & 13.72 \\
-  massachusetts & 0.00 & 0.00 & 4.72 & 0.00 & 0.00 & 4.32 & 11.58 & 1.00 & 5.00 & 10.00 & 15.54 & 15.68 & 0.98 & 4.91 & 9.71 & 14.45 & 14.55 \\
-  michigan & 0.28 & 0.28 & 6.44 & 0.26 & 0.26 & 5.88 & 13.20 & 1.00 & 5.00 & 10.00 & 16.36 & 16.73 & 1.00 & 4.94 & 9.75 & 14.91 & 15.21 \\
-  minnesota & 1.00 & 1.00 & 6.11 & 0.98 & 0.98 & 5.35 & 12.11 & 1.00 & 5.00 & 10.00 & 15.59 & 16.00 & 0.98 & 4.89 & 9.65 & 13.73 & 14.03 \\
-  mississippi & 0.93 & 1.73 & 6.89 & 0.96 & 1.74 & 6.48 & 12.73 & 1.00 & 5.00 & 9.99 & 15.02 & 15.22 & 1.00 & 4.95 & 9.75 & 13.97 & 14.16 \\
-  missouri & 0.23 & 0.61 & 6.52 & 0.24 & 0.60 & 6.08 & 12.89 & 1.00 & 5.00 & 10.00 & 15.84 & 16.26 & 1.00 & 4.92 & 9.76 & 14.70 & 15.09 \\
-  montana & 0.03 & 0.98 & 6.33 & 0.04 & 1.00 & 5.79 & 11.13 & 1.00 & 5.00 & 9.99 & 14.09 & 14.38 & 1.00 & 4.93 & 9.69 & 13.18 & 13.40 \\
-  nebraska & 0.00 & 0.32 & 5.60 & 0.00 & 0.32 & 5.21 & 11.16 & 1.00 & 5.00 & 10.00 & 14.78 & 15.28 & 1.00 & 4.93 & 9.66 & 13.39 & 13.71 \\
-  nevada & 0.00 & 0.72 & 3.35 & 0.00 & 0.71 & 2.91 & 10.55 & 1.00 & 5.00 & 9.98 & 13.78 & 13.94 & 0.99 & 4.92 & 9.72 & 12.61 & 12.72 \\
-  new\_hampshire & 0.01 & 0.01 & 4.70 & 0.01 & 0.01 & 4.48 & 10.70 & 1.00 & 5.00 & 9.98 & 13.65 & 13.70 & 1.00 & 4.86 & 9.48 & 12.47 & 12.51 \\
-  new\_jersey & 0.00 & 0.17 & 4.69 & 0.00 & 0.17 & 4.15 & 11.56 & 1.00 & 5.00 & 10.00 & 15.83 & 16.01 & 0.96 & 4.87 & 9.68 & 14.36 & 14.49 \\
-  new\_mexico & 0.00 & 0.84 & 5.46 & 0.00 & 0.83 & 4.89 & 11.23 & 1.00 & 5.00 & 9.99 & 14.43 & 14.70 & 0.98 & 4.90 & 9.68 & 13.29 & 13.46 \\
-  new\_york & 0.00 & 0.28 & 5.28 & 0.00 & 0.26 & 4.15 & 11.76 & 1.00 & 5.00 & 10.00 & 16.25 & 16.64 & 0.97 & 4.83 & 9.74 & 14.99 & 15.25 \\
-  north\_carolina & 0.00 & 0.89 & 6.89 & 0.00 & 0.90 & 6.59 & 14.01 & 1.00 & 5.00 & 10.00 & 16.08 & 16.32 & 1.00 & 4.97 & 9.82 & 15.21 & 15.44 \\
-  north\_dakota & 0.00 & 0.78 & 5.71 & 0.00 & 0.73 & 4.61 & 9.80 & 1.00 & 5.00 & 9.98 & 13.71 & 14.07 & 0.99 & 4.88 & 9.45 & 11.86 & 12.02 \\
-  ohio & 0.00 & 0.61 & 6.59 & 0.00 & 0.63 & 6.17 & 13.45 & 1.00 & 5.00 & 10.00 & 16.40 & 16.83 & 1.00 & 4.95 & 9.80 & 15.23 & 15.61 \\
-  oklahoma & 0.00 & 0.05 & 6.25 & 0.00 & 0.05 & 5.67 & 12.35 & 1.00 & 5.00 & 10.00 & 15.35 & 15.80 & 1.00 & 4.95 & 9.76 & 14.19 & 14.57 \\
-  oregon & 0.99 & 1.29 & 5.46 & 0.99 & 1.29 & 5.10 & 11.87 & 1.00 & 5.00 & 10.00 & 14.96 & 15.25 & 1.00 & 4.96 & 9.79 & 14.02 & 14.24 \\
-  pennsylvania & 0.00 & 0.84 & 6.39 & 0.00 & 0.86 & 5.96 & 13.18 & 1.00 & 5.00 & 10.00 & 16.65 & 17.17 & 1.00 & 4.96 & 9.82 & 15.50 & 16.00 \\
-  rhode\_island & 0.00 & 0.00 & 2.55 & 0.00 & 0.00 & 2.35 & 9.34 & 1.00 & 5.00 & 9.97 & 13.29 & 13.31 & 0.99 & 4.88 & 9.58 & 12.36 & 12.37 \\
-  south\_carolina & 0.00 & 0.96 & 6.21 & 0.00 & 0.98 & 5.85 & 13.07 & 1.00 & 5.00 & 10.00 & 15.31 & 15.49 & 1.00 & 4.96 & 9.80 & 14.38 & 14.53 \\
-  south\_dakota & 0.54 & 1.33 & 6.08 & 0.51 & 1.32 & 5.53 & 10.56 & 1.00 & 5.00 & 9.97 & 13.81 & 14.11 & 1.00 & 4.94 & 9.59 & 12.37 & 12.56 \\
-  tennessee & 0.20 & 0.20 & 6.49 & 0.28 & 0.28 & 6.08 & 13.29 & 1.00 & 5.00 & 10.00 & 15.69 & 15.93 & 1.00 & 4.96 & 9.77 & 14.65 & 14.86 \\
-  texas & 0.00 & 0.94 & 7.27 & 0.00 & 0.85 & 6.74 & 14.07 & 1.00 & 5.00 & 10.00 & 16.71 & 17.56 & 1.00 & 4.95 & 9.80 & 15.43 & 16.05 \\
-  utah & 0.00 & 0.59 & 4.33 & 0.00 & 0.61 & 3.89 & 10.86 & 1.00 & 5.00 & 10.00 & 14.44 & 14.63 & 1.00 & 4.85 & 9.54 & 13.11 & 13.23 \\
-  vermont & 0.04 & 0.04 & 5.32 & 0.04 & 0.04 & 4.98 & 10.58 & 1.00 & 5.00 & 9.93 & 12.92 & 12.95 & 0.99 & 4.92 & 9.57 & 12.01 & 12.04 \\
-  virginia & 0.00 & 0.74 & 6.03 & 0.00 & 0.73 & 5.62 & 12.77 & 1.00 & 5.00 & 9.99 & 15.51 & 15.72 & 1.00 & 4.93 & 9.73 & 14.41 & 14.60 \\
-  washington & 0.00 & 0.09 & 5.76 & 0.00 & 0.08 & 5.35 & 12.48 & 1.00 & 5.00 & 10.00 & 15.47 & 15.76 & 1.00 & 4.95 & 9.75 & 14.42 & 14.65 \\
-  west\_virginia & 0.00 & 1.29 & 6.20 & 0.00 & 1.26 & 5.78 & 12.13 & 1.00 & 5.00 & 9.99 & 14.61 & 14.79 & 1.00 & 4.95 & 9.76 & 13.84 & 14.00 \\
-  wisconsin & 1.08 & 1.08 & 6.59 & 0.93 & 0.93 & 5.95 & 12.49 & 1.00 & 5.00 & 10.00 & 15.88 & 16.25 & 1.00 & 4.94 & 9.77 & 14.37 & 14.65 \\
-  wyoming & 0.00 & 0.00 & 5.75 & 0.00 & 0.00 & 5.42 & 10.15 & 1.00 & 5.00 & 9.97 & 13.43 & 13.59 & 1.00 & 4.92 & 9.59 & 12.42 & 12.52 \\
+  & \multicolumn{3}{ |c| }{Population} & \multicolumn{3}{ |c| }{Rentals}
+  & \multicolumn{3}{ |c| }{Population} & \multicolumn{5}{ |c| }{Rentals} \\
+  \hline
+  & {\footnotesize $H(g_{10})$} & {\footnotesize $H(g_{20})$} & {\footnotesize $H(g_{30})$}
+  & {\footnotesize $H(g_{10})$} & {\footnotesize $H(g_{20})$} & {\footnotesize $H(g_{30})$}
+  & {\footnotesize $H(h_{10}^{10})$} & {\footnotesize $H(h_{20}^{10})$} & {\footnotesize $H(h_{30}^{10})$}
+  & {\footnotesize $H(h_{1}^{10})$}  & {\footnotesize $H(h_{5}^{10})$}  & {\footnotesize $H(h_{10}^{10})$}
+  & {\footnotesize $H(h_{20}^{10})$} & {\footnotesize $H(h_{30}^{10})$}\\
+  \hline
+DC & 0.0 & 1.2 & 7.6 & 0.0 & 1.2 & 7.2 & 9.8 & 11.3 & 11.3 & 1.0 & 4.9 & 9.4 & 10.5 & 10.5 \\
+  DE & 1.0 & 3.6 & 10.8 & 0.9 & 3.2 & 9.5 & 9.9 & 12.9 & 12.9 & 1.0 & 4.9 & 9.3 & 11.5 & 11.5 \\
+  HI & 0.8 & 3.4 & 10.0 & 0.8 & 3.3 & 9.3 & 9.9 & 12.2 & 12.3 & 1.0 & 4.9 & 9.6 & 11.6 & 11.7 \\
+  AK & 1.9 & 5.4 & 11.1 & 1.9 & 4.9 & 10.4 & 9.9 & 12.3 & 12.4 & 1.0 & 4.9 & 9.6 & 11.6 & 11.8 \\
+  ND & 0.8 & 5.7 & 11.6 & 0.7 & 4.6 & 9.8 & 10.0 & 13.7 & 14.1 & 1.0 & 4.9 & 9.4 & 11.9 & 12.0 \\
+  VT & 0.0 & 5.3 & 12.0 & 0.0 & 5.0 & 10.6 & 9.9 & 12.9 & 12.9 & 1.0 & 4.9 & 9.6 & 12.0 & 12.0 \\
+  RI & 0.0 & 2.6 & 10.4 & 0.0 & 2.4 & 9.3 & 10.0 & 13.3 & 13.3 & 1.0 & 4.9 & 9.6 & 12.4 & 12.4 \\
+  NH & 0.0 & 4.7 & 12.4 & 0.0 & 4.5 & 10.7 & 10.0 & 13.7 & 13.7 & 1.0 & 4.9 & 9.5 & 12.5 & 12.5 \\
+  WY & 0.0 & 5.7 & 11.2 & 0.0 & 5.4 & 10.2 & 10.0 & 13.4 & 13.6 & 1.0 & 4.9 & 9.6 & 12.4 & 12.5 \\
+  SD & 1.3 & 6.1 & 12.0 & 1.3 & 5.5 & 10.6 & 10.0 & 13.8 & 14.1 & 1.0 & 4.9 & 9.6 & 12.4 & 12.6 \\
+  NV & 0.7 & 3.4 & 11.3 & 0.7 & 2.9 & 10.5 & 10.0 & 13.8 & 13.9 & 1.0 & 4.9 & 9.7 & 12.6 & 12.7 \\
+  ME & 0.6 & 5.9 & 13.0 & 0.6 & 5.5 & 11.4 & 10.0 & 14.0 & 14.0 & 1.0 & 4.9 & 9.6 & 13.0 & 13.1 \\
+  UT & 0.6 & 4.3 & 11.9 & 0.6 & 3.9 & 10.9 & 10.0 & 14.4 & 14.6 & 1.0 & 4.9 & 9.5 & 13.1 & 13.2 \\
+  CT & 0.0 & 4.3 & 12.7 & 0.0 & 4.1 & 11.1 & 10.0 & 14.6 & 14.6 & 1.0 & 4.9 & 9.6 & 13.3 & 13.3 \\
+  MT & 1.0 & 6.3 & 12.3 & 1.0 & 5.8 & 11.1 & 10.0 & 14.1 & 14.4 & 1.0 & 4.9 & 9.7 & 13.2 & 13.4 \\
+  NM & 0.8 & 5.5 & 12.3 & 0.8 & 4.9 & 11.2 & 10.0 & 14.4 & 14.7 & 1.0 & 4.9 & 9.7 & 13.3 & 13.5 \\
+  ID & 1.4 & 5.4 & 12.3 & 1.4 & 5.2 & 11.3 & 10.0 & 14.3 & 14.6 & 1.0 & 4.9 & 9.7 & 13.4 & 13.6 \\
+  NE & 0.3 & 5.6 & 12.3 & 0.3 & 5.2 & 11.2 & 10.0 & 14.8 & 15.3 & 1.0 & 4.9 & 9.7 & 13.4 & 13.7 \\
+  MD & 0.9 & 4.7 & 12.9 & 0.8 & 4.3 & 11.5 & 10.0 & 14.9 & 15.1 & 1.0 & 4.9 & 9.6 & 13.6 & 13.7 \\
+  WV & 1.3 & 6.2 & 13.3 & 1.3 & 5.8 & 12.1 & 10.0 & 14.6 & 14.8 & 1.0 & 5.0 & 9.8 & 13.8 & 14.0 \\
+  MN & 1.0 & 6.1 & 13.9 & 1.0 & 5.4 & 12.1 & 10.0 & 15.6 & 16.0 & 1.0 & 4.9 & 9.6 & 13.7 & 14.0 \\
+  KS & 0.4 & 6.0 & 13.0 & 0.3 & 5.6 & 11.8 & 10.0 & 15.0 & 15.6 & 1.0 & 5.0 & 9.7 & 13.7 & 14.1 \\
+  MS & 1.7 & 6.9 & 13.9 & 1.7 & 6.5 & 12.7 & 10.0 & 15.0 & 15.2 & 1.0 & 5.0 & 9.8 & 14.0 & 14.2 \\
+  CO & 0.9 & 5.2 & 12.9 & 0.8 & 4.7 & 11.8 & 10.0 & 15.3 & 15.6 & 1.0 & 4.9 & 9.7 & 14.0 & 14.2 \\
+  OR & 1.3 & 5.5 & 12.8 & 1.3 & 5.1 & 11.9 & 10.0 & 15.0 & 15.2 & 1.0 & 5.0 & 9.8 & 14.0 & 14.2 \\
+  IA & 0.0 & 6.8 & 13.5 & 0.0 & 6.4 & 12.2 & 10.0 & 15.2 & 15.8 & 1.0 & 5.0 & 9.8 & 13.9 & 14.3 \\
+  KY & 0.0 & 6.6 & 13.9 & 0.0 & 6.1 & 12.7 & 10.0 & 15.1 & 15.3 & 1.0 & 4.9 & 9.8 & 14.2 & 14.3 \\
+  AR & 0.5 & 6.7 & 13.8 & 0.5 & 6.3 & 12.6 & 10.0 & 15.1 & 15.4 & 1.0 & 5.0 & 9.8 & 14.1 & 14.3 \\
+  AZ & 0.9 & 5.1 & 13.0 & 0.8 & 4.5 & 12.1 & 10.0 & 15.4 & 15.7 & 1.0 & 4.9 & 9.8 & 14.1 & 14.4 \\
+  NJ & 0.2 & 4.7 & 13.0 & 0.2 & 4.1 & 11.6 & 10.0 & 15.8 & 16.0 & 1.0 & 4.9 & 9.7 & 14.4 & 14.5 \\
+  LA & 0.3 & 6.1 & 13.5 & 0.3 & 5.5 & 12.4 & 10.0 & 15.3 & 15.5 & 1.0 & 4.9 & 9.7 & 14.3 & 14.5 \\
+  SC & 1.0 & 6.2 & 14.1 & 1.0 & 5.8 & 13.1 & 10.0 & 15.3 & 15.5 & 1.0 & 5.0 & 9.8 & 14.4 & 14.5 \\
+  MA & 0.0 & 4.7 & 13.1 & 0.0 & 4.3 & 11.6 & 10.0 & 15.5 & 15.7 & 1.0 & 4.9 & 9.7 & 14.4 & 14.6 \\
+  OK & 0.0 & 6.2 & 13.6 & 0.0 & 5.7 & 12.3 & 10.0 & 15.4 & 15.8 & 1.0 & 4.9 & 9.8 & 14.2 & 14.6 \\
+  VA & 0.7 & 6.0 & 14.0 & 0.7 & 5.6 & 12.8 & 10.0 & 15.5 & 15.7 & 1.0 & 4.9 & 9.7 & 14.4 & 14.6 \\
+  WA & 0.1 & 5.8 & 13.6 & 0.1 & 5.4 & 12.5 & 10.0 & 15.5 & 15.8 & 1.0 & 5.0 & 9.8 & 14.4 & 14.6 \\
+  WI & 1.1 & 6.6 & 14.1 & 0.9 & 6.0 & 12.5 & 10.0 & 15.9 & 16.2 & 1.0 & 4.9 & 9.8 & 14.4 & 14.6 \\
+  AL & 0.9 & 6.7 & 14.4 & 0.8 & 6.3 & 13.1 & 10.0 & 15.6 & 15.8 & 1.0 & 5.0 & 9.8 & 14.5 & 14.7 \\
+  TN & 0.2 & 6.5 & 14.5 & 0.3 & 6.1 & 13.3 & 10.0 & 15.7 & 15.9 & 1.0 & 5.0 & 9.8 & 14.7 & 14.9 \\
+  GA & 1.0 & 6.5 & 14.6 & 1.0 & 6.1 & 13.5 & 10.0 & 15.6 & 15.9 & 1.0 & 4.9 & 9.8 & 14.6 & 14.9 \\
+  IN & 0.7 & 6.5 & 14.3 & 0.7 & 6.1 & 12.8 & 10.0 & 16.0 & 16.4 & 1.0 & 4.9 & 9.7 & 14.7 & 15.1 \\
+  MO & 0.6 & 6.5 & 14.1 & 0.6 & 6.1 & 12.9 & 10.0 & 15.8 & 16.3 & 1.0 & 4.9 & 9.8 & 14.7 & 15.1 \\
+  MI & 0.3 & 6.4 & 14.6 & 0.3 & 5.9 & 13.2 & 10.0 & 16.4 & 16.7 & 1.0 & 4.9 & 9.8 & 14.9 & 15.2 \\
+  NY & 0.3 & 5.3 & 13.5 & 0.3 & 4.1 & 11.8 & 10.0 & 16.3 & 16.6 & 1.0 & 4.8 & 9.7 & 15.0 & 15.2 \\
+  NC & 0.9 & 6.9 & 15.0 & 0.9 & 6.6 & 14.0 & 10.0 & 16.1 & 16.3 & 1.0 & 5.0 & 9.8 & 15.2 & 15.4 \\
+  OH & 0.6 & 6.6 & 14.7 & 0.6 & 6.2 & 13.4 & 10.0 & 16.4 & 16.8 & 1.0 & 5.0 & 9.8 & 15.2 & 15.6 \\
+  IL & 0.8 & 5.7 & 14.0 & 0.8 & 5.1 & 12.6 & 10.0 & 16.6 & 17.2 & 1.0 & 4.9 & 9.7 & 15.4 & 15.8 \\
+  FL & 1.0 & 6.6 & 14.6 & 1.0 & 6.2 & 13.7 & 10.0 & 16.5 & 17.0 & 1.0 & 5.0 & 9.8 & 15.5 & 15.9 \\
+  PA & 0.8 & 6.4 & 14.6 & 0.9 & 6.0 & 13.2 & 10.0 & 16.7 & 17.2 & 1.0 & 5.0 & 9.8 & 15.5 & 16.0 \\
+  TX & 0.9 & 7.3 & 15.2 & 0.9 & 6.7 & 14.1 & 10.0 & 16.7 & 17.6 & 1.0 & 5.0 & 9.8 & 15.4 & 16.0 \\
+  CA & 0.8 & 6.6 & 14.6 & 0.8 & 6.2 & 13.9 & 10.0 & 16.9 & 17.6 & 1.0 & 5.0 & 9.9 & 16.1 & 16.7 \\
    \hline
 \end{tabular}
+\label{tab:entropyStates}
+\caption{Here be dragons}
 \end{table}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Distributed Application}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Conclusions}
+\section{Distributed Application}  \label{sec:hbase}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Future Work}  \label{sec:future}
 
+
+\nocite{*}
+\bibliography{bhash}
 
 \end{document}

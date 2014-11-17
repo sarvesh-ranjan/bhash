@@ -146,6 +146,8 @@ write.csv(output, "entropy.csv")
 library(xtable)
 fnames = dir("../UScensus2010blk/data/", pattern="*.rda")
 fnames = gsub(".blk10.rda", "", fnames, fixed=TRUE)
-output = read.csv("entropy.csv")
-row.names(output) = fnames
-xtable(output[,-c(1,2,6,7)])
+output = read.csv("entropy.csv")[,-1]
+row.names(output) = c(state.abb[1:8], "DC", state.abb[9:50])
+xtable(output[order(output[,ncol(output)]),-c(1,2,6,7,11,12)], digits=1)
+
+
