@@ -45,14 +45,13 @@ based on maximum entropy encoding in which the data volume
 is approximately constant for a given hash prefix length.
 Distributed spatiotemporal databases, which typically require interleaving
 spatial and temporal elements into a single key, reap large benefits
-from a balanced geohash by creating a consistent balance between spatial
+from a balanced geohash by creating a consistent ratio between spatial
 and temporal precision even across areas of varying data density.
-This property also useful for indexing purely spatial datasets,
-where load distribution of large range scans is an imporant aspect
+This property is also useful for indexing purely spatial datasets,
+where the load distribution of large range scans is an imporant aspect
 of query performance.  We apply our algorithm to data generated
 proportional to population as given by census block population
-counts provided from the US Census Bureau. An efficent implementation
-for calculating an arbitrary balanced geohash is also provided.
+counts provided from the US Census Bureau.
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,7 +102,7 @@ distributed document store MongoDB \cite{chodorow2013mongodb}.
 The geohash concept adapts well for purely geospatial distributed datasets, allowing for
 querying spatial regions of vastly different scales through the use of a single index; larger
 regions specify a longer range of geohashes whereas smaller regions specify a shorter range.
-A temporal component can incorporated into the space-filling curve underlying a standard
+A temporal component can be incorporated into the space-filling curve underlying a standard
 geohash, however this requires an unavoidable, fixed database design decision as to the
 appropriate scaling factor between space and time. For instance: should a square kilometre
 bucket in space coorispond to a month, day, or hour bucket in time? The decision has
@@ -134,18 +133,57 @@ proposed geohash based schemes for storing large geospatial--temporal datasets. 
 side effect of the entropy based encoding it has also reduces the size of the raw database
 files; this has been observed even after applying aggressive compression techniques.
 
-The remainder of this article is organized as follows: Section~\ref{sec:related}
-provides a brief literature review of geospatial database techniques with a particular
-focus on how these can be used in conjuction with our methods.
+The remainder of this article is organized as follows: Section~\ref{sec:form}
+provides a specific formulation of the problems we are trying to solve and the
+deficiencies of addressing them using a the standard geohash.
+Section~\ref{sec:related} provides a brief literature review of geospatial
+database techniques with a particular focus on how these can be used in conjuction
+with our methods.
 In Section~\ref{sec:geohash} we give a thorough mathematical description of the standard
 geohash algorithm and present the formulation for entropy maximizing geohash.
 Theorem~\ref{entropyThm} establishes an upper bound on how well the maximized geohash
 an be learnt from a sample of spatial data. Section~\ref{sec:census} applies the
 entropic geohash to data based on data from the US Census Bureau, and empirically
-demonstrates how robust the method is to model drift.
-Section~\ref{sec:hbase} gives results from an implemention of the geohash in HBase
-using synthetic data generated from the Census bureau and Section~\ref{sec:future}
+demonstrates how robust the method is to model drift and Section~\ref{sec:future}
 provides avenues for future extensions.
+%Section~\ref{sec:hbase} gives results from an implemention of the geohash in HBase
+%using synthetic data generated from the Census bureau and Section~\ref{sec:future}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Formulation} \label{sec:form}
+
+Consider partitioning an area of space into equally sized square boxes. If these
+regions were given a unique identifier, a basic geospatial-temporal index can be constructed
+by concatinating the box id with a timestamp. Querying a region in spacetime, assuming
+that the time dimension of the query is small compared to the time window of the database,
+would be done by calculating a minimal covering of the spatial region with the square boxes.
+Then a range query could be placing for each box id between the desired start and end timestamps.
+Several inefficencies may result from this method:
+\begin{enumerate}
+\item If the boxes are too small relative the query area, the number of queries (each
+of which will lead to increased overhead) may be very large. While these can be placed
+in parallel, there will eventually be an I/O bottleneck on the machines storing
+the database when the number of parallel queries is large.
+\item If the query area is much smaller than the size of a box, the resultant queries
+will have a large number of false positives: points returned which are not in the
+desired query region. This leads to significant increases in both computational and I/O costs.
+\item Even when the number of covering boxes is neither too small nor too large, the parallel
+execution of the queries over each box will not necessarily be balanced. The speedup will be
+sub-linear, with the query time driven by the densest box which commonly has an order of
+magnitude more data than the average data volume per block.
+\end{enumerate}
+Issues (1) and (2) are dual to one another, and if all queries have similarly sized
+spatial regions the database can be constructed to use boxes with an area optimized
+for these queries. However, in the typical case that varying sized queries must be
+supported any choice will run into one of these problems. Regardless, the load
+balancing associated with (3) continues to a problem for any dataset with significant
+spatial bias.
+
+As a solution to these problems, we propose a method for partitioning space as regions
+with equal data volumes rather than boxes with equally sized volumes. This is done by
+modifying the standard geohash algorithm without sacrificing any main benefits of the
+geohash algorithm or substantially increasing the computation burden of encoding or
+decoding input data points.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related Work} \label{sec:related}
@@ -181,10 +219,12 @@ specifying the relative resolution of the spatial and temporal dimensions, and w
 adaptable with no major changes to use our entropy maximizing geohash.
 
 Finally, we note that the desire for a data balanced design which motivated our work is a
-natural consequence of efficent query design, and has driven much of the advanced tree-based
-work. Red–-black trees \cite{bayer1972symmetric} and the Day–-Stout–-Warren algorithm
-for binary trees \cite{stout1986tree} are two important examples. In this context, the
-entropy maximizing geohash can be thought of as the curve filling analogue to balanced trees.
+natural parallel to the problems associated with efficent query design in the
+related tree-based work. Red–-black trees \cite{bayer1972symmetric} and the
+Day–-Stout–-Warren algorithm for binary trees \cite{stout1986tree} are two important examples
+of load balancing advanced data structures.
+In this context, the entropy maximizing geohash can be thought of as the curve filling
+analogue to balanced trees.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Entropy Balanced Geohash}  \label{sec:geohash}
@@ -201,9 +241,7 @@ x &= \frac{\text{lon} + 180}{360} \\
 y &= \frac{\text{lat} + 90}{180}
 \end{align}
 This choice is by convention, and any other method for mapping coordinantes
-into the unit square is equally viable. The geohash formulation actually works
-on any continuous two-dimensional data, and could be used  as-is to encode other
-two-dimensional datasets.
+into the unit square is equally viable.
 
 The $x$ and $y$ coordinates need to be expressed in as a binary decimals.
 Formally, we define the $x_i \in \{0,1 \}$ and $y_i \in \{0,1\}$
@@ -275,7 +313,7 @@ In the remainder of this document, we refer the $h_q \circ g(x,y)$ as a generali
 
 We have introduced the concept of a generalized geohash in order to construct a spatial encoding
 scheme which better optimizes the entropy as defined in Equation~\ref{entropyDef}.
-Assume $\{z_i\}_{i=0}^N$ is a set of independent sample from realizations of the random variable
+Assume $\{z_i\}_{i=0}^N$ is a set of independent samples from realizations of the random variable
 $\mathfrak{F}$. The empirical cumulative distribution function $G$ of the standard geohash function
 $g(\cdot, \cdot)$ is given by
 \begin{align}
@@ -338,102 +376,143 @@ to $q$ is typically much faster.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Census Data Example}  \label{sec:census}
 
-\subsection{Population based}
-
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{fig02}
-\label{fig:hash}
 \caption{Example entropy balanced geohash buckets (those which have a common prefix)
 of $3$,$4$,$5$, and $6$-bits learned from population data in the state of Ohio.
 Numbers are sequentially ordered from the smallest to the largest geohash buckets,
 and the buckets were truncated to the state boundaries to increase readability
 even though they theoretically extend outside as well.}
+\label{fig:ohioHash}
 \end{figure}
 
-\setlength{\tabcolsep}{.18em}
-\begin{table}[ht]
+\begin{figure}
 \centering
-\begin{tabular}{|c|rrr|rrr|rrr|rrrrr|}
-  \hline
-  & \multicolumn{6}{ |c| }{Geohash}    & \multicolumn{8}{ |c| }{Balanced Hash} \\
-  \hline
-  & \multicolumn{3}{ |c| }{Population} & \multicolumn{3}{ |c| }{Rentals}
-  & \multicolumn{3}{ |c| }{Population} & \multicolumn{5}{ |c| }{Rentals} \\
-  \hline
-  & {\footnotesize $H(g_{10})$} & {\footnotesize $H(g_{20})$} & {\footnotesize $H(g_{30})$}
-  & {\footnotesize $H(g_{10})$} & {\footnotesize $H(g_{20})$} & {\footnotesize $H(g_{30})$}
-  & {\footnotesize $H(h_{10}^{10})$} & {\footnotesize $H(h_{20}^{10})$} & {\footnotesize $H(h_{30}^{10})$}
-  & {\footnotesize $H(h_{1}^{10})$}  & {\footnotesize $H(h_{5}^{10})$}  & {\footnotesize $H(h_{10}^{10})$}
-  & {\footnotesize $H(h_{20}^{10})$} & {\footnotesize $H(h_{30}^{10})$}\\
-  \hline
-DC & 0.0 & 1.2 & 7.6 & 0.0 & 1.2 & 7.2 & 9.8 & 11.3 & 11.3 & 1.0 & 4.9 & 9.4 & 10.5 & 10.5 \\
-  DE & 1.0 & 3.6 & 10.8 & 0.9 & 3.2 & 9.5 & 9.9 & 12.9 & 12.9 & 1.0 & 4.9 & 9.3 & 11.5 & 11.5 \\
-  HI & 0.8 & 3.4 & 10.0 & 0.8 & 3.3 & 9.3 & 9.9 & 12.2 & 12.3 & 1.0 & 4.9 & 9.6 & 11.6 & 11.7 \\
-  AK & 1.9 & 5.4 & 11.1 & 1.9 & 4.9 & 10.4 & 9.9 & 12.3 & 12.4 & 1.0 & 4.9 & 9.6 & 11.6 & 11.8 \\
-  ND & 0.8 & 5.7 & 11.6 & 0.7 & 4.6 & 9.8 & 10.0 & 13.7 & 14.1 & 1.0 & 4.9 & 9.4 & 11.9 & 12.0 \\
-  VT & 0.0 & 5.3 & 12.0 & 0.0 & 5.0 & 10.6 & 9.9 & 12.9 & 12.9 & 1.0 & 4.9 & 9.6 & 12.0 & 12.0 \\
-  RI & 0.0 & 2.6 & 10.4 & 0.0 & 2.4 & 9.3 & 10.0 & 13.3 & 13.3 & 1.0 & 4.9 & 9.6 & 12.4 & 12.4 \\
-  NH & 0.0 & 4.7 & 12.4 & 0.0 & 4.5 & 10.7 & 10.0 & 13.7 & 13.7 & 1.0 & 4.9 & 9.5 & 12.5 & 12.5 \\
-  WY & 0.0 & 5.7 & 11.2 & 0.0 & 5.4 & 10.2 & 10.0 & 13.4 & 13.6 & 1.0 & 4.9 & 9.6 & 12.4 & 12.5 \\
-  SD & 1.3 & 6.1 & 12.0 & 1.3 & 5.5 & 10.6 & 10.0 & 13.8 & 14.1 & 1.0 & 4.9 & 9.6 & 12.4 & 12.6 \\
-  NV & 0.7 & 3.4 & 11.3 & 0.7 & 2.9 & 10.5 & 10.0 & 13.8 & 13.9 & 1.0 & 4.9 & 9.7 & 12.6 & 12.7 \\
-  ME & 0.6 & 5.9 & 13.0 & 0.6 & 5.5 & 11.4 & 10.0 & 14.0 & 14.0 & 1.0 & 4.9 & 9.6 & 13.0 & 13.1 \\
-  UT & 0.6 & 4.3 & 11.9 & 0.6 & 3.9 & 10.9 & 10.0 & 14.4 & 14.6 & 1.0 & 4.9 & 9.5 & 13.1 & 13.2 \\
-  CT & 0.0 & 4.3 & 12.7 & 0.0 & 4.1 & 11.1 & 10.0 & 14.6 & 14.6 & 1.0 & 4.9 & 9.6 & 13.3 & 13.3 \\
-  MT & 1.0 & 6.3 & 12.3 & 1.0 & 5.8 & 11.1 & 10.0 & 14.1 & 14.4 & 1.0 & 4.9 & 9.7 & 13.2 & 13.4 \\
-  NM & 0.8 & 5.5 & 12.3 & 0.8 & 4.9 & 11.2 & 10.0 & 14.4 & 14.7 & 1.0 & 4.9 & 9.7 & 13.3 & 13.5 \\
-  ID & 1.4 & 5.4 & 12.3 & 1.4 & 5.2 & 11.3 & 10.0 & 14.3 & 14.6 & 1.0 & 4.9 & 9.7 & 13.4 & 13.6 \\
-  NE & 0.3 & 5.6 & 12.3 & 0.3 & 5.2 & 11.2 & 10.0 & 14.8 & 15.3 & 1.0 & 4.9 & 9.7 & 13.4 & 13.7 \\
-  MD & 0.9 & 4.7 & 12.9 & 0.8 & 4.3 & 11.5 & 10.0 & 14.9 & 15.1 & 1.0 & 4.9 & 9.6 & 13.6 & 13.7 \\
-  WV & 1.3 & 6.2 & 13.3 & 1.3 & 5.8 & 12.1 & 10.0 & 14.6 & 14.8 & 1.0 & 5.0 & 9.8 & 13.8 & 14.0 \\
-  MN & 1.0 & 6.1 & 13.9 & 1.0 & 5.4 & 12.1 & 10.0 & 15.6 & 16.0 & 1.0 & 4.9 & 9.6 & 13.7 & 14.0 \\
-  KS & 0.4 & 6.0 & 13.0 & 0.3 & 5.6 & 11.8 & 10.0 & 15.0 & 15.6 & 1.0 & 5.0 & 9.7 & 13.7 & 14.1 \\
-  MS & 1.7 & 6.9 & 13.9 & 1.7 & 6.5 & 12.7 & 10.0 & 15.0 & 15.2 & 1.0 & 5.0 & 9.8 & 14.0 & 14.2 \\
-  CO & 0.9 & 5.2 & 12.9 & 0.8 & 4.7 & 11.8 & 10.0 & 15.3 & 15.6 & 1.0 & 4.9 & 9.7 & 14.0 & 14.2 \\
-  OR & 1.3 & 5.5 & 12.8 & 1.3 & 5.1 & 11.9 & 10.0 & 15.0 & 15.2 & 1.0 & 5.0 & 9.8 & 14.0 & 14.2 \\
-  IA & 0.0 & 6.8 & 13.5 & 0.0 & 6.4 & 12.2 & 10.0 & 15.2 & 15.8 & 1.0 & 5.0 & 9.8 & 13.9 & 14.3 \\
-  KY & 0.0 & 6.6 & 13.9 & 0.0 & 6.1 & 12.7 & 10.0 & 15.1 & 15.3 & 1.0 & 4.9 & 9.8 & 14.2 & 14.3 \\
-  AR & 0.5 & 6.7 & 13.8 & 0.5 & 6.3 & 12.6 & 10.0 & 15.1 & 15.4 & 1.0 & 5.0 & 9.8 & 14.1 & 14.3 \\
-  AZ & 0.9 & 5.1 & 13.0 & 0.8 & 4.5 & 12.1 & 10.0 & 15.4 & 15.7 & 1.0 & 4.9 & 9.8 & 14.1 & 14.4 \\
-  NJ & 0.2 & 4.7 & 13.0 & 0.2 & 4.1 & 11.6 & 10.0 & 15.8 & 16.0 & 1.0 & 4.9 & 9.7 & 14.4 & 14.5 \\
-  LA & 0.3 & 6.1 & 13.5 & 0.3 & 5.5 & 12.4 & 10.0 & 15.3 & 15.5 & 1.0 & 4.9 & 9.7 & 14.3 & 14.5 \\
-  SC & 1.0 & 6.2 & 14.1 & 1.0 & 5.8 & 13.1 & 10.0 & 15.3 & 15.5 & 1.0 & 5.0 & 9.8 & 14.4 & 14.5 \\
-  MA & 0.0 & 4.7 & 13.1 & 0.0 & 4.3 & 11.6 & 10.0 & 15.5 & 15.7 & 1.0 & 4.9 & 9.7 & 14.4 & 14.6 \\
-  OK & 0.0 & 6.2 & 13.6 & 0.0 & 5.7 & 12.3 & 10.0 & 15.4 & 15.8 & 1.0 & 4.9 & 9.8 & 14.2 & 14.6 \\
-  VA & 0.7 & 6.0 & 14.0 & 0.7 & 5.6 & 12.8 & 10.0 & 15.5 & 15.7 & 1.0 & 4.9 & 9.7 & 14.4 & 14.6 \\
-  WA & 0.1 & 5.8 & 13.6 & 0.1 & 5.4 & 12.5 & 10.0 & 15.5 & 15.8 & 1.0 & 5.0 & 9.8 & 14.4 & 14.6 \\
-  WI & 1.1 & 6.6 & 14.1 & 0.9 & 6.0 & 12.5 & 10.0 & 15.9 & 16.2 & 1.0 & 4.9 & 9.8 & 14.4 & 14.6 \\
-  AL & 0.9 & 6.7 & 14.4 & 0.8 & 6.3 & 13.1 & 10.0 & 15.6 & 15.8 & 1.0 & 5.0 & 9.8 & 14.5 & 14.7 \\
-  TN & 0.2 & 6.5 & 14.5 & 0.3 & 6.1 & 13.3 & 10.0 & 15.7 & 15.9 & 1.0 & 5.0 & 9.8 & 14.7 & 14.9 \\
-  GA & 1.0 & 6.5 & 14.6 & 1.0 & 6.1 & 13.5 & 10.0 & 15.6 & 15.9 & 1.0 & 4.9 & 9.8 & 14.6 & 14.9 \\
-  IN & 0.7 & 6.5 & 14.3 & 0.7 & 6.1 & 12.8 & 10.0 & 16.0 & 16.4 & 1.0 & 4.9 & 9.7 & 14.7 & 15.1 \\
-  MO & 0.6 & 6.5 & 14.1 & 0.6 & 6.1 & 12.9 & 10.0 & 15.8 & 16.3 & 1.0 & 4.9 & 9.8 & 14.7 & 15.1 \\
-  MI & 0.3 & 6.4 & 14.6 & 0.3 & 5.9 & 13.2 & 10.0 & 16.4 & 16.7 & 1.0 & 4.9 & 9.8 & 14.9 & 15.2 \\
-  NY & 0.3 & 5.3 & 13.5 & 0.3 & 4.1 & 11.8 & 10.0 & 16.3 & 16.6 & 1.0 & 4.8 & 9.7 & 15.0 & 15.2 \\
-  NC & 0.9 & 6.9 & 15.0 & 0.9 & 6.6 & 14.0 & 10.0 & 16.1 & 16.3 & 1.0 & 5.0 & 9.8 & 15.2 & 15.4 \\
-  OH & 0.6 & 6.6 & 14.7 & 0.6 & 6.2 & 13.4 & 10.0 & 16.4 & 16.8 & 1.0 & 5.0 & 9.8 & 15.2 & 15.6 \\
-  IL & 0.8 & 5.7 & 14.0 & 0.8 & 5.1 & 12.6 & 10.0 & 16.6 & 17.2 & 1.0 & 4.9 & 9.7 & 15.4 & 15.8 \\
-  FL & 1.0 & 6.6 & 14.6 & 1.0 & 6.2 & 13.7 & 10.0 & 16.5 & 17.0 & 1.0 & 5.0 & 9.8 & 15.5 & 15.9 \\
-  PA & 0.8 & 6.4 & 14.6 & 0.9 & 6.0 & 13.2 & 10.0 & 16.7 & 17.2 & 1.0 & 5.0 & 9.8 & 15.5 & 16.0 \\
-  TX & 0.9 & 7.3 & 15.2 & 0.9 & 6.7 & 14.1 & 10.0 & 16.7 & 17.6 & 1.0 & 5.0 & 9.8 & 15.4 & 16.0 \\
-  CA & 0.8 & 6.6 & 14.6 & 0.8 & 6.2 & 13.9 & 10.0 & 16.9 & 17.6 & 1.0 & 5.0 & 9.9 & 16.1 & 16.7 \\
-   \hline
-\end{tabular}
-\label{tab:entropyStates}
-\caption{Here be dragons}
-\end{table}
+\includegraphics[width=6in]{fig03}
+\caption{Average entropy for population and rental household data in Ohio. The green
+line is the standard geohash; dashed lines are balanced geohashes, and the overlaid
+numbers give the number of bits to which is is balanced. The rental unit balanced
+geohashes are balanced on population data rather than the rental data.}
+ \label{fig:ohioEntropy}
+\end{figure}
 
+\begin{figure}
+\centering
+\includegraphics[width=6in]{fig04}
+\caption{Plots of entropy per bit for population (x-axis) versus rental units (y-axis)
+for 5,10, and 15-bit balanced geohashes. Only 34 states (and the District of Columbia)
+are shown because overplotting otherwise made the image too difficult to read.}
+ \label{fig:allStatesEntropy}
+\end{figure}
 
+Many large geospatial datasets are distributed roughly proportional to population. Log files
+geocoded by ip addresses for instance will tend to have more activity in dense urban areas
+and less in rural regions. We use aggregate count data from the US Census data as a natural
+example for exploring the balanced geohash because these counts are also proportional to
+population. The Census Bureau distributes decennial aggregate counts across thousands of
+attributes at various levels of grainularity. The smallest region with un-sampled counts are
+census blocks, small geographic regions containing the residences of typically somewhere
+between 600 and 1300 people. There were over 11 million such regions in the 2010 Census. We
+use census blocks here in order to have the maximum level of geospatial grainularity available.
+Due to the smaller aggregation size, only a small subset of summary statistics are provided
+for census blocks. The total population will be used to construct the balanced geohash, with
+the total number of households renting their primary residence (contrasted with owning) being
+used to show the relative robustness of the balanced hash.
 
+To help visualize the balanced geohash, the entropy balanced hash up to $3$,$4$,$5$, and
+$6$-bits were calculated from the population data in the state of Ohio. In Figure~\ref{fig:ohioHash}
+the geohash `buckets', all points in space with a common prefix, are illustrated over a
+map of the state. Technically the buckets extend over the entire globe, but are truncated here
+to increase readability of the graphic. Notice that each region in the $q$-bit bucket is bifurcated
+into two regions in the coorisponding $q+1$-bit bucket. Also, as is common, the smaller set of
+$3$-bit buckets all have roughly the same area. However, the $6$-bit buckets differ vastly in size
+compared to for instance the very small region 21 and large region 51. As expected, the buckets
+tend to clump up around the major cities in Ohio, such as the $6$-bit buckets 20-22, 28, 29
+do around Columbus.
+
+Continuing with the census example in Ohio, Figure~\ref{fig:ohioEntropy} plots the average
+entropy for a standard geohash and several balanced geohashes for census block population
+and rental household data. The rental household data uses a geohash balanced on population,
+and illustrates the degree to which our method is robust to changes in the underlying data
+model. In both cases as expected the balanced geohashes have higher average entropies the
+when more bits are used for balancing. There are significantly diminishing returns however,
+with the improvement from 2 to 3 bits being larger than the jump from 5 to 20. The entropy
+from the rental unit-based data is generally quite comprable to the population-based data,
+indicating that the balanced hash is fairly robust to moderate changes in the generating
+model. Rental units are correlated with population, but do exhibit spatial dependence with
+a higher rate or renting in more urban and less affluent areas as well as spikes near
+large universities.
+
+Near $35$-bits of precision, across all of the hashes, the entropies
+converge and the entropy per bit begins to decay to zero. The reason for this is that
+there are less than $2^19$ census blocks in the entire state of Ohio, and even the standard
+geohash manages to put every block's centroid into its own bucket after using at least
+$35$-bits. Ultimately the discreteness of the data limits our ability to further increase
+the entropy even with additional splits. Additionally, the $20$-bit balanced geohash would
+in theory have a perfect entropy per bit up to $20$-bits of hash length if the data were
+continuous. In fact, the $20$-bit geohash at $15$-bits of precision (note that this is
+indistingusihable from a $15$-bit geohash) has only $0.9$ and average of bits of entropy
+per bit.
+
+Figure~\ref{fig:allStatesEntropy} plots the entropy of three balanced geohashes for
+$34$ other states at $15$-bits of precision. The leftmost panel shows the outcome of
+only balancing on the first $5$-bits. The worst states here are Alaska, Hawaii, South
+Dakota, and North Dakota. These are all states which have a very low population density
+(for Hawaii, the density is low when averaged over the area of a bounding box for the
+entire island chain). The rightmost panel shows the pure effects
+of the discreteness of the data, as all of the x-values would otherwise be perfect $1$s.
+Not surprisingly, the most populous state of California fairs the best followed closesly
+by other large states such as Texas and Florida. The smallest states have the worst entropy
+here, with DC being the worst at only $0.75$ average entropy per bit. In all cases, the
+hash balanced on population performs similarly in regards to the number of rental properties.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Distributed Application}  \label{sec:hbase}
+\section{Future Extensions}  \label{sec:future}
 
+We have presented an extension on the traditional geohash which is balanced on the data
+volume rather than boxes of constant latitude and longitude. The benefits of this approach
+have been shown for both spatial and spatial-temporal databases. Theorem~\ref{entropyThm}
+establishes the robustness of our model-based approach due to random noise and an empirical
+study of US Census data demonstrates robustness to model drift. The balanced geohash is
+usable for indexing large databases as-is; in most applications it will perform most queries
+in less time, with fewer scans, and lower overhead. There are several extensions of our
+work which would further increase the applicability of the entropy balanced geohash.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Future Work}  \label{sec:future}
+Our balanced geohash $b^q_m(\cdot)$ has two free parameters which give the number of bits for which
+the hash is balanced ($q$) and length of the entire hash ($m$). The latter is largely
+application specific, but the choice of $q$ has some important efficency aspects. If $q$ is
+too large the geohash can become quite noisy and overfit to the sample of data used to
+learn the underlying model. Additionally, in order to map a standard geohash to a balanced
+geohash we need to know the $2^q$ break points to the linear interpolation given in
+Equation~\ref{balancedHash}. So if $q$ is large the memory overhead of the balanced
+geohash may become prohibitive. In order to better estimate an optimal $q$, tighter two-way
+theoretical bounds are needed as compared to those given in Theorem~\ref{entropyThm}. This
+will likely require replacing the distribution-free approach employeed in our proof with a
+specific family of models such as Gaussian mixtures. In the meantime we can safely pick a
+small $q$ without concern, knowing that the noise level is low but that the
 
+The paper \cite{han2013hgrid} provides a generic approach for interleaving geospatial
+and temporal components utilizing the specific implementation optimizations present in
+HBase. As mentioned, the geohash used in this paper can be seamlessly replaced by the
+entropy balanced geohash. The exact method of choosing how to incorporate the time and
+space dimensions are not specified as this will largely be a function of the specific
+underlying dataset. In the case of the balanced geohash, since the data boxes are
+already balanced by the distribution of the data, it should be possible to at least
+specify a methodology for choosing how to interleave these components (with perhaps
+one or two tuning parameters to tweak based on the specific use-cases). For now the
+method of combining these two dimensions can be done fairly well manually, particularly
+if the scheme is kept simple.
+
+Finally, while the balanced geohash is fairly robust to model drift, a method akin to
+self-balancing trees whereby the balanaced geohash could adapt over time would be a
+great addition to fixed hash present here. This would be particularly important when
+implementing a large $q$-bit balanced geohash. Possible methods for doing this include
+adaptively splitting large prefixes and joining small prefixes; this would require
+re-writting data, but would hopefully not be required very often. Alternatively a more
+scheme could be used to only balance new data as it arrives. In either case, care would
+need to be taken to avoid large increases to the computational complexity or memory
+overhead of an adaptive balanced geohash design.
 
 \nocite{*}
 \bibliography{bhash}

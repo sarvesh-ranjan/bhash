@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  17 NOV 2014 20:57
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  20 NOV 2014 20:19
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -391,7 +391,7 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
  [1
 
 {/usr/local/texlive/2014/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Underfull \vbox (badness 5475) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [2]
 Missing character: There is no â in font ptmr7t!
@@ -403,75 +403,96 @@ Missing character: There is no “ in font ptmr7t!
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no “ in font ptmr7t!
-LaTeX Font Info:    Try loading font information for U+euf on input line 235.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [3]
+LaTeX Font Info:    Try loading font information for U+euf on input line 273.
 
 (/usr/local/texlive/2014/texmf-dist/tex/latex/amsfonts/ueuf.fd
 File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
-) [3] [4]
+) [4]
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no “ in font ptmr7t!
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no “ in font ptmr7t!
-
-<fig02.pdf, id=147, 867.24pt x 867.24pt>
+ [5]
+<fig02.pdf, id=156, 867.24pt x 867.24pt>
 File: fig02.pdf Graphic file (type pdf)
  <use fig02.pdf>
-Package pdftex.def Info: fig02.pdf used on input line 345.
+Package pdftex.def Info: fig02.pdf used on input line 381.
 (pdftex.def)             Requested size: 397.48499pt x 397.49286pt.
 
-Overfull \hbox (69.79523pt too wide) in paragraph at lines 357--424
+<fig03.pdf, id=157, 867.24pt x 433.62pt>
+File: fig03.pdf Graphic file (type pdf)
+ <use fig03.pdf>
+Package pdftex.def Info: fig03.pdf used on input line 392.
+(pdftex.def)             Requested size: 433.62pt x 216.80946pt.
+
+Overfull \hbox (36.13501pt too wide) in paragraph at lines 392--396
  [][] 
  []
 
-(./bhash.bbl [5] [6 <./fig02.pdf>]
+<fig04.pdf, id=158, 867.24pt x 325.215pt>
+File: fig04.pdf Graphic file (type pdf)
+ <use fig04.pdf>
+Package pdftex.def Info: fig04.pdf used on input line 402.
+(pdftex.def)             Requested size: 433.62pt x 162.6071pt.
+
+Overfull \hbox (36.13501pt too wide) in paragraph at lines 402--405
+ [][] 
+ []
+
+[6] [7 <./fig02.pdf>] [8 <./fig03.pdf> <./fig04.pdf>] (./bhash.bbl
+Underfull \vbox (badness 5475) has occurred while \output is active []
+
+ [9]
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
-)
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 441.
- [7] [8]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 441.
+
+[10])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 520.
+ [11]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 520.
  (./bhash.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 441.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 441.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 520.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 520.
 Package rerunfilecheck Info: File `bhash.out' has not changed.
-(rerunfilecheck)             Checksum: 7A63D995B2B8843E10EBE9C4AB48F546;680.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 441.
+(rerunfilecheck)             Checksum: E37167E8EC1CAFE87B4FF7F4E3233FE6;616.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 520.
  ) 
 Here is how much of TeX's memory you used:
- 6791 strings out of 493117
- 96654 string characters out of 6135433
- 231187 words of memory out of 5000000
- 10086 multiletter control sequences out of 15000+600000
- 21369 words of font info for 57 fonts, out of 8000000 for 9000
+ 6784 strings out of 493117
+ 96594 string characters out of 6135433
+ 194090 words of memory out of 5000000
+ 10078 multiletter control sequences out of 15000+600000
+ 17288 words of font info for 42 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 37i,16n,39p,488b,431s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 37i,16n,39p,488b,427s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2014/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/te
 xlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/tex
 live/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/local/texli
 ve/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive
-/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2
-014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/201
-4/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive/2014/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2014/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2014/texmf-d
-ist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2014/texmf-dist
-/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2014/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2014/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2014/texmf-dist/font
-s/type1/public/amsfonts/euler/eufm10.pfb></usr/local/texlive/2014/texmf-dist/fo
-nts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2014/texmf-dis
-t/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/
-type1/urw/times/utmb8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/
-times/utmr8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/times/utmr
-i8a.pfb>
-Output written on bhash.pdf (8 pages, 2781807 bytes).
+/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2
+014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive/2014
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2014/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2014/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2014/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2014/texmf-d
+ist/fonts/type1/public/amsfonts/euler/eufm10.pfb></usr/local/texlive/2014/texmf
+-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2014/t
+exmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2014/texmf-dis
+t/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/ty
+pe1/urw/times/utmr8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/ti
+mes/utmri8a.pfb>
+Output written on bhash.pdf (11 pages, 2778122 bytes).
 PDF statistics:
- 372 PDF objects out of 1000 (max. 8388607)
- 238 compressed objects within 3 object streams
- 68 named destinations out of 1000 (max. 500000)
- 94 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 396 PDF objects out of 1000 (max. 8388607)
+ 258 compressed objects within 3 object streams
+ 74 named destinations out of 1000 (max. 500000)
+ 96 words of extra memory for PDF output out of 10000 (max. 10000000)
 

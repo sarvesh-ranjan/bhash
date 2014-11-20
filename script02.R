@@ -93,6 +93,70 @@ for (bits in c(3,4,5,6)) {
 }
 dev.off()
 
+# Calculate various balanced hashes:
+bits = c(1,2,3,4,5,6,7,8,10,15,20)
+bh = matrix(NA, nrow=length(weights), ncol=length(bits))
+for (i in 1:length(bits)) {
+  xvals = 1:(2^bits[i])/(2^bits[i])
+  h_inv = approx(weights, geohash, xout=xvals)$y
+  h_vals = approx(h_inv, xvals, xout=geohash)$y
+  h_vals[is.na(h_vals)] = 0
+  balanced_hash = numericToBaseN(h_vals, base=2L, digits=50)
+  bh[,i] = balanced_hash
+}
+
+# Calculate entropy of g_q and b_q^5, b_q^8, b_q^10, b_q^15
+for (k in 1:2) {
+  var = c(1L,5L)[k]
+  bit_vals = c(1L:15L,18L,20L,25L,30L,40L,50)
+  entropy = matrix(NA, ncol= ncol(bh) + 1L, nrow=length(bit_vals))
+  for (i in 1:nrow(entropy)) {
+    ghash = apply(z[,1L:bit_vals[i],drop=FALSE],1,paste,collapse="")
+    gp = ctapply(d[,var], ghash, sum) / sum(d[,var])
+    gp = gp[gp > 0]
+    entropy[i,1L] = -1 * sum( gp * log(gp,2) )
+
+    for (j in 1L:ncol(bh)) {
+      bhash = substr(bh[,j], 3L, bit_vals[i] + 2L)
+      bp = ctapply(d[,var], bhash, sum) / sum(d[,var])
+      bp = bp[bp > 0]
+      entropy[i,j + 1L] = -1 * sum( bp * log(bp,2) )
+    }
+
+    print(entropy[i,])
+  }
+  saveRDS(entropy, paste0("entropy",k,".Rds"))
+}
+
+# Plot entropy
+pdf("fig03.pdf", height=6, width=12)
+  par(mfrow=c(1,2))
+  offs = 0.5
+  k = 15
+  bit_vals = c(1L:15L,18L,20L,25L,30L,40L,50)
+  bits = c(1,2,3,4,5,6,7,8,10,15,20)
+  entropy = readRDS("entropy1.Rds")
+  bvals = setdiff(2L:ncol(entropy),11)
+  plot(bit_vals, entropy[,1] / bit_vals, type="l", lwd=2, col="olivedrab", ylim=c(0,1),
+        xlim = c(0L, max(bit_vals)),
+        ylab="Shannon entropy per bit",xlab="hash bits",main="Population-Based")
+  for (j in bvals) lines(bit_vals, entropy[,j] / bit_vals, lwd=1, col="grey", lty="dashed")
+  lines(bit_vals, entropy[,1] / bit_vals, lwd=2, col="olivedrab")
+  abline(h=1, col=grey(0.2))
+  for (j in bvals) text(bit_vals[k], entropy[k,j] / bit_vals[k], bits[j-1], cex=0.6)
+
+  entropy = readRDS("entropy2.Rds")
+  plot(bit_vals, entropy[,1] / bit_vals, type="l", lwd=2, col="olivedrab", ylim=c(0,1),
+        xlim = c(0L, max(bit_vals)),
+        ylab="Shannon entropy per bit",xlab="hash bits",main="Rental Unit-Based")
+  for (j in bvals) lines(bit_vals, entropy[,j] / bit_vals, lwd=1, col="grey", lty="dashed")
+  lines(bit_vals, entropy[,1] / bit_vals, lwd=2, col="olivedrab")
+  abline(h=1, col=grey(0.2))
+  for (j in bvals) text(bit_vals[k], entropy[k,j] / bit_vals[k],bits[j-1], cex=0.6)
+
+dev.off()
+
+
 # Cycle over all the states:
 fnames = dir("../UScensus2010blk/data/", pattern="*.rda")
 fnames = gsub(".blk10.rda", "", fnames, fixed=TRUE)
