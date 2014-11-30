@@ -85,13 +85,13 @@ and Apache Cassandra \cite{lakshman2010cassandra}.
 For geospatial data sources which are typically queried on an entity--by--entity basis, the
 standard distributed database applications are straightforward to implement. A uniquely
 identifying serial number for each entity can be used as the primary key, with spatial
-and temporal filtering accomplished with a combination of in-database filters as a single
+and temporal filtering accomplished with a combination of in-database filters; a single
 entity will typically constitute only a negligable proportion of the overall data volume.
 This application model for example would satisfy the needs of a user-facing supply chain
 system in which end-users search for the current location of an expected delivery.
 Unfortunately, more complex spatial queries do not fit neatly into the distributed database
 design. A single primary key is natively one-dimensional, whereas geospatial data
-is typically two-dimensional and, with the addition of a temporal component, often
+is typically two-dimensional and, with the addition of a temporal component, generally
 no less than three. A common method for alleviating the dimensionality problem of having a single primary
 index is through the use of a space-filling curves such as Peano, Gosper, and Dragon
 curves. A geohash is a particular algorithm which uses a space-filling curve for
@@ -121,11 +121,11 @@ is often more natural to scale the spatial buckets to be proprotional to the dat
 In this case, we instead only need to decide: should a bucket with 1 million data points
 coorispond to month, day, or hour bucket in time? This question will typically have a more
 natural answer for a given database system than the previous one, particularly when the
-query results are used as inputs to complex algorithm such as recommender systems or
+query results are used as inputs to complex algorithms such as recommender systems or
 anomaly detection routines.
 
 In order to implement a data balanced alternative to the standard space filling curves,
-we present a novel entropy maximizing geohash. Our method is necessarily model base and
+we present a novel entropy maximizing geohash. Our method is necessarily model based and
 learned from a small subset of spatial data. It is robust both to random noise and
 model drift. It can implemented with only a modest increase in computational complexity
 and is generic enough to be implemented as-is in conjuction with several recently
@@ -141,10 +141,10 @@ database techniques with a particular focus on how these can be used in conjucti
 with our methods.
 In Section~\ref{sec:geohash} we give a thorough mathematical description of the standard
 geohash algorithm and present the formulation for entropy maximizing geohash.
-Theorem~\ref{entropyThm} establishes an upper bound on how well the maximized geohash
-an be learnt from a sample of spatial data. Section~\ref{sec:census} applies the
-entropic geohash to data based on data from the US Census Bureau, and empirically
-demonstrates how robust the method is to model drift and Section~\ref{sec:future}
+In particular, a theoretical result establishes an upper bound on how well the
+maximized geohash can be learnt from a sample of spatial data. Section~\ref{sec:census} applies the
+entropic geohash to data from the US Census Bureau, empirically
+demonstrating how robust the method is to model drift and Section~\ref{sec:future}
 provides avenues for future extensions.
 %Section~\ref{sec:hbase} gives results from an implemention of the geohash in HBase
 %using synthetic data generated from the Census bureau and Section~\ref{sec:future}
@@ -164,7 +164,7 @@ Several inefficencies may result from this method:
 of which will lead to increased overhead) may be very large. While these can be placed
 in parallel, there will eventually be an I/O bottleneck on the machines storing
 the database when the number of parallel queries is large.
-\item If the query area is much smaller than the size of a box, the resultant queries
+\item If the query area is smaller than the size of a box, the resultant queries
 will have a large number of false positives: points returned which are not in the
 desired query region. This leads to significant increases in both computational and I/O costs.
 \item Even when the number of covering boxes is neither too small nor too large, the parallel
@@ -174,9 +174,9 @@ magnitude more data than the average data volume per block.
 \end{enumerate}
 Issues (1) and (2) are dual to one another, and if all queries have similarly sized
 spatial regions the database can be constructed to use boxes with an area optimized
-for these queries. However, in the typical case that varying sized queries must be
-supported any choice will run into one of these problems. Regardless, the load
-balancing associated with (3) continues to a problem for any dataset with significant
+for these queries. However, in the typical case that queries of varying sizes must be
+supported, any choice will run into one of these problems. Regardless, the load
+balancing associated with (3) continues to be a problem for any dataset with significant
 spatial bias.
 
 As a solution to these problems, we propose a method for partitioning space as regions
@@ -188,20 +188,20 @@ decoding input data points.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related Work} \label{sec:related}
 
-There is a long history of database work on data structures for
+There is a long history of work on data structures for
 optimizing geospatial and geospatial-temporal queries such
 as $k$-nearest neighbors and spatial joins. Common examples
 include R-trees \cite{guttman1984r},
 $R^{*}$-trees \cite{beckmann1990r}, and quadtrees \cite{samet1985storing}.
 These algorithms often offer superior performance to simple space filling
 curves by replicating the true dimensionality of the problem by an abstraction
-of a trees as linked lists. Unfortunately linked lists are do not fit into
+of trees structures as linked lists. Unfortunately linked lists do not fit into
 the primary key design scheme of the distributed databases mentioned in
-the previous section making these more sophisticated algorithms out of
+the previous section, making these more sophisticated algorithms out of
 reach for productionalized systems.
 
 Some research has been done towards producing a distributed database which would
-be able natively implement the geospatial temporal database structures which have been successful
+be able to natively implement the geospatial temporal database structures which have been successful
 on single machine scale applications. These include VegaGiStore \cite{zhong2012towards},
 VegaCache \cite{zhong2013vegacache} and VegaCI \cite{zhong2012distributed}, \cite{zhong2012elastic}.
 However at this time these remain merely theoretical as no distribution of any of these
@@ -214,15 +214,15 @@ standard databases this is the approach we have choosen to augment with our work
 developed a generic approach for blending these two dimensions, along with methods for
 extending to lines and polygons and for producing fast queries in Apache Accumulo \cite{fox2013spatio}.
 The HGrid data model is a similar application which takes advantage of the specific secondary
-indicies and related optimizations present in HBase \cite{han2013hgrid}. These both rely on
-specifying the relative resolution of the spatial and temporal dimensions, and would would be
-adaptable with no major changes to use our entropy maximizing geohash.
+indicies and related optimizations present in HBase \cite{han2013hgrid}. Both rely on
+specifying the relative resolution of the spatial and temporal dimensions, and are able to
+use our entropy maximizing geohash with no major changes.
 
 Finally, we note that the desire for a data balanced design which motivated our work is a
 natural parallel to the problems associated with efficent query design in the
 related tree-based work. Red–-black trees \cite{bayer1972symmetric} and the
-Day–-Stout–-Warren algorithm for binary trees \cite{stout1986tree} are two important examples
-of load balancing advanced data structures.
+Day–-Stout–-Warren algorithm for binary trees \cite{stout1986tree} are important examples
+of load balancing used in relation to tree-based data structures.
 In this context, the entropy maximizing geohash can be thought of as the curve filling
 analogue to balanced trees.
 
@@ -279,8 +279,8 @@ H(g_q) &:= -1 \sum_{v \in \mathcal{R}(g_q)} \mathbb{P} \left[ g_q(\mathfrak{F}) 
 \end{align}
 Where $\mathcal{R}(g_q)$ is the range of the $q$-bit geohash. It is a standard result
 that the entropy of a discrete distribution is maximized by the uniform distribution.
-Therefore we can use this as a proxy for how balanced a geohash is for a given distribution
-of spatial data.
+Therefore we can use the entropy per bit as a proxy for how balanced a geohash is
+for a given distribution of spatial data.
 
 \subsection{The Generalized Geohash}
 
@@ -307,7 +307,7 @@ To the its first $q$-bits
 \begin{align}
 h_q(z) &:= \sum_{i=1}^{q} \frac{w_i}{2^i}.
 \end{align}
-In the remainder of this document, we refer the $h_q \circ g(x,y)$ as a generalized geohash.
+In the remainder of this paper, we refer to $h_q \circ g(x,y)$ as a {\it generalized geohash}.
 
 \subsection{The Empirical Entropic Geohash}
 
@@ -319,7 +319,7 @@ $g(\cdot, \cdot)$ is given by
 \begin{align}
 G(t) &:= \frac{1}{N} \cdot \sum_{i=0}^{N} 1_{g(z_i) \leq t}, \, t \in [0,1]. \label{empGeohash}
 \end{align}
-From Equation~\ref{empGeohash} we can define the balanced entropy maximizing geohash function
+From Equation~\ref{empGeohash} we can define the {\it entropy maximizing geohash} function
 $b$ (balanced), assuming that every point $z_i$ has a geohash $g(z_i)$ strictly between $0$ and
 $1$, to be
 \begin{align}
@@ -350,7 +350,7 @@ Let $F(\cdot)$ be the true cumulative distribution function of the variable $\ma
 and $F_N(\cdot)$ be the empirical cumulative distribution function from a sample of $N$
 independent observations. Setting $\epsilon = [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}$,
 the Dvoretzky–-Kiefer–-Wolfowitz inequality states \cite{dvoretzky1956asymptotic} that
-the follow holds for all values
+the following holds for all values
 $A \in [0,1]$ with probability $1 - e^{-2N\epsilon}$:
 \begin{align}
 |F(x) - F_n(x)| \leq [1 - A] \cdot \frac{N}{N+2} \cdot 2^{-(q+1)}
@@ -410,8 +410,9 @@ Many large geospatial datasets are distributed roughly proportional to populatio
 geocoded by ip addresses for instance will tend to have more activity in dense urban areas
 and less in rural regions. We use aggregate count data from the US Census data as a natural
 example for exploring the balanced geohash because these counts are also proportional to
-population. The Census Bureau distributes decennial aggregate counts across thousands of
-attributes at various levels of grainularity. The smallest region with un-sampled counts are
+population (exactly equal, in fact). The Census Bureau distributes decennial aggregate
+counts across thousands of attributes at various levels of grainularity. The smallest region
+with un-sampled counts are
 census blocks, small geographic regions containing the residences of typically somewhere
 between 600 and 1300 people. There were over 11 million such regions in the 2010 Census. We
 use census blocks here in order to have the maximum level of geospatial grainularity available.
@@ -427,33 +428,33 @@ map of the state. Technically the buckets extend over the entire globe, but are 
 to increase readability of the graphic. Notice that each region in the $q$-bit bucket is bifurcated
 into two regions in the coorisponding $q+1$-bit bucket. Also, as is common, the smaller set of
 $3$-bit buckets all have roughly the same area. However, the $6$-bit buckets differ vastly in size
-compared to for instance the very small region 21 and large region 51. As expected, the buckets
+such as the small area of region 21 and large area of region 51. As expected, the buckets
 tend to clump up around the major cities in Ohio, such as the $6$-bit buckets 20-22, 28, 29
-do around Columbus.
+around Columbus.
 
 Continuing with the census example in Ohio, Figure~\ref{fig:ohioEntropy} plots the average
 entropy for a standard geohash and several balanced geohashes for census block population
 and rental household data. The rental household data uses a geohash balanced on population,
 and illustrates the degree to which our method is robust to changes in the underlying data
-model. In both cases as expected the balanced geohashes have higher average entropies the
-when more bits are used for balancing. There are significantly diminishing returns however,
+model. In both cases, as expected, the balanced geohashes have higher average entropies the
+when more bits are used for balancing. There are significantly diminishing returns of
+increasing $q$, however,
 with the improvement from 2 to 3 bits being larger than the jump from 5 to 20. The entropy
-from the rental unit-based data is generally quite comprable to the population-based data,
+from the rental unit-based data is generally quite similar to the population-based data,
 indicating that the balanced hash is fairly robust to moderate changes in the generating
 model. Rental units are correlated with population, but do exhibit spatial dependence with
-a higher rate or renting in more urban and less affluent areas as well as spikes near
+a higher rate of renting in more urban and less affluent areas as well as spikes near
 large universities.
 
-Near $35$-bits of precision, across all of the hashes, the entropies
+With significantly higher levels of precision, across all of the hashes, the entropies
 converge and the entropy per bit begins to decay to zero. The reason for this is that
-there are less than $2^19$ census blocks in the entire state of Ohio, and even the standard
+there are less than $2^{19}$ census blocks in the entire state of Ohio, and even the standard
 geohash manages to put every block's centroid into its own bucket after using at least
 $35$-bits. Ultimately the discreteness of the data limits our ability to further increase
 the entropy even with additional splits. Additionally, the $20$-bit balanced geohash would
-in theory have a perfect entropy per bit up to $20$-bits of hash length if the data were
+in theory have a near perfect entropy per bit up to $20$-bits of hash length if the data were
 continuous. In fact, the $20$-bit geohash at $15$-bits of precision (note that this is
-indistingusihable from a $15$-bit geohash) has only $0.9$ and average of bits of entropy
-per bit.
+indistingusihable from a $15$-bit geohash) has only and entropy of $0.9$ per hash pbit.
 
 Figure~\ref{fig:allStatesEntropy} plots the entropy of three balanced geohashes for
 $34$ other states at $15$-bits of precision. The leftmost panel shows the outcome of
@@ -461,11 +462,12 @@ only balancing on the first $5$-bits. The worst states here are Alaska, Hawaii, 
 Dakota, and North Dakota. These are all states which have a very low population density
 (for Hawaii, the density is low when averaged over the area of a bounding box for the
 entire island chain). The rightmost panel shows the pure effects
-of the discreteness of the data, as all of the x-values would otherwise be perfect $1$s.
-Not surprisingly, the most populous state of California fairs the best followed closesly
-by other large states such as Texas and Florida. The smallest states have the worst entropy
-here, with DC being the worst at only $0.75$ average entropy per bit. In all cases, the
-hash balanced on population performs similarly in regards to the number of rental properties.
+of the discreteness of the data, as all of the x-values would otherwise be nearly perfect
+values near $1$. Not surprisingly, the most populous state of California fairs the best
+followed closesly by other large states such as Texas and Florida. The smallest states
+have the worst entropy here, with DC being the worst at only $0.75$ average entropy per bit.
+In all cases, the hash balanced on population performs similarly in regards to the number
+of rental properties.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Future Extensions}  \label{sec:future}
@@ -476,8 +478,9 @@ have been shown for both spatial and spatial-temporal databases. Theorem~\ref{en
 establishes the robustness of our model-based approach due to random noise and an empirical
 study of US Census data demonstrates robustness to model drift. The balanced geohash is
 usable for indexing large databases as-is; in most applications it will perform most queries
-in less time, with fewer scans, and lower overhead. There are several extensions of our
-work which would further increase the applicability of the entropy balanced geohash.
+in less time, with fewer scans, and lower overhead compared to a standard geohash.
+There are several extensions of our work which would further increase the applicability
+of the entropy balanced geohash.
 
 Our balanced geohash $b^q_m(\cdot)$ has two free parameters which give the number of bits for which
 the hash is balanced ($q$) and length of the entire hash ($m$). The latter is largely
@@ -490,11 +493,12 @@ geohash may become prohibitive. In order to better estimate an optimal $q$, tigh
 theoretical bounds are needed as compared to those given in Theorem~\ref{entropyThm}. This
 will likely require replacing the distribution-free approach employeed in our proof with a
 specific family of models such as Gaussian mixtures. In the meantime we can safely pick a
-small $q$ without concern, knowing that the noise level is low but that the
+small $q$ without concern, knowing that the noise level is low but that long hash prefixes
+may be mildly unbalanced.
 
 The paper \cite{han2013hgrid} provides a generic approach for interleaving geospatial
 and temporal components utilizing the specific implementation optimizations present in
-HBase. As mentioned, the geohash used in this paper can be seamlessly replaced by the
+HBase. As mentioned, the geohash used in their paper can be seamlessly replaced by the
 entropy balanced geohash. The exact method of choosing how to incorporate the time and
 space dimensions are not specified as this will largely be a function of the specific
 underlying dataset. In the case of the balanced geohash, since the data boxes are
@@ -505,14 +509,14 @@ method of combining these two dimensions can be done fairly well manually, parti
 if the scheme is kept simple.
 
 Finally, while the balanced geohash is fairly robust to model drift, a method akin to
-self-balancing trees whereby the balanaced geohash could adapt over time would be a
-great addition to fixed hash present here. This would be particularly important when
+self-balancing trees whereby the balanced geohash could adapt over time would be a
+great addition to fixed hash presented here. This would be particularly important when
 implementing a large $q$-bit balanced geohash. Possible methods for doing this include
 adaptively splitting large prefixes and joining small prefixes; this would require
-re-writting data, but would hopefully not be required very often. Alternatively a more
+re-writting data, but would hopefully not be required very often. Alternatively a
 scheme could be used to only balance new data as it arrives. In either case, care would
 need to be taken to avoid large increases to the computational complexity or memory
-overhead of an adaptive balanced geohash design.
+overhead of an adaptive modification to the entropy maximized geohash design.
 
 \nocite{*}
 \bibliography{bhash}
